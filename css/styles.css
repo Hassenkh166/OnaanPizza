@@ -108,7 +108,7 @@ main {
 /* Hero section */
 #hero {
   position: relative;
-  min-height: 85vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,14 +150,16 @@ main {
   position: relative;
   z-index: 3;
   max-width: 900px;
-  padding: 2rem;
+  padding: 2.5rem 2rem;
   text-align: center;
+  text-shadow: 0 10px 28px rgba(0,0,0,0.45);
 }
 
 .hero-title-main {
   font-size: 3.2rem;
   font-weight: 800;
   letter-spacing: 0.5px;
+  line-height: 1.2;
 }
 
 .hero-subtitle {
@@ -169,7 +171,11 @@ main {
 .hero-description {
   font-size: 1.05rem;
   color: rgba(255,255,255,0.9);
+  margin: 0;
 }
+
+.restaurant-name-part1 { color: #FFD166; }
+.restaurant-name-part2 { color: #fff; }
 
 /* Menu cards */
 .menu-card img{
@@ -556,7 +562,7 @@ main {
 /* Écrans moyens : 993px à 1199px */
 @media (min-width: 993px) and (max-width: 1199px) {
   .logo-img { width: 75px; height: 75px; }
-  #hero { height: 80vh; }
+  #hero { min-height: 90vh; }
   .hero-content .hero-title-main { font-size: 3rem; }
   .hero-content .hero-subtitle { font-size: 1.3rem; }
   .hero-content .btn { font-size: 1rem; padding: 0.9rem 2rem; }
@@ -565,6 +571,7 @@ main {
 /* Tablettes : 769px à 992px */
 @media (min-width: 769px) and (max-width: 992px) {
   .hero-content .hero-title-main { font-size: 2.5rem; }
+  #hero { min-height: 85vh; }
   .logo-img { width: 70px; height: 70px; }
   .menu-card { margin-bottom: 1.5rem; }
   .about-card { height: 280px; }
@@ -575,7 +582,7 @@ main {
   .btn-cta { padding: 0.8rem 1.8rem; font-size: 0.95rem; }
   .menu-card img { height: 220px; }
   .logo-img { width: 60px; height: 60px; }
-  #hero { height: 70vh; }
+  #hero { min-height: 82vh; }
   .hero-content .hero-title-main { font-size: 1.8rem; }
   .hero-content .hero-subtitle { font-size: 1rem; }
   .hero-content .hero-description { font-size: 0.95rem; }
