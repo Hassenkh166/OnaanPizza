@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin - O'naan Pizza</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+      .admin-panel{max-width:980px;margin:60px auto}
+      .product-row{transition:background .18s}
+    </style>
+  </head>
+  <body>
+    <div class="container admin-panel">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+        <div class="container-fluid px-0">
+          <a class="navbar-brand fw-bold" href="admin.html">Administration</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="adminNav">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+              <li class="nav-item"><a class="nav-link active" href="admin.html">Produits</a></li>
+              <li class="nav-item"><a class="nav-link" href="daily-specials.html">Promotions</a></li>
+              <li class="nav-item"><a class="nav-link" href="site-config.html">Configuration</a></li>
+              <li class="nav-item"><a class="nav-link" href="index.html" target="_blank">Voir le site</a></li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+      <div class="card mb-4">
+
+     <div class="card mb-4">
+         <div class="card-body">
+          <h5>Ajouter une catégorie</h5>
+          <form id="categoryForm" class="d-flex gap-2 align-items-center">
+           <input id="categoryName" class="form-control" placeholder="Nom de la catégorie" required>
+           <button class="btn btn-success" id ="addCategory" type="button">Ajouter</button>
+          </form>
+         </div>
+  <div class="card-body">
+    <h5>Catégories existantes</h5>
+    <div id="categoriesList" class="list-group"></div>
+  </div>
+      </div>
+
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <form id="productForm">
+            <input type="hidden" id="productId">
+            <div class="row g-2">
+              <div class="col-md-4">
+                <input id="productTitle" class="form-control" placeholder="Titre du produit" required>
+              </div>
+              <div class="col-md-3">
+                <input id="productPrice" class="form-control" placeholder="Prix (ex: 9.50€)" required>
+              </div>
+              <div class="col-md-3">
+                <select id="productCategory" class="form-select" required>
+                  <option value="">Choisir une catégorie</option>
+                </select>
+              </div>
+              <!-- image URL removed: use file upload only -->
+              <div class="col-12 mt-2">
+                <label class="form-label">téléverser une image</label>
+                <input id="productFile" type="file" accept="image/*" class="form-control">
+                <div id="preview" class="mt-2"></div>
+              </div>
+              <div class="col-12 mt-2">
+                <textarea id="productDesc" rows="2" class="form-control" placeholder="Description"></textarea>
+              </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-primary" id="saveBtn">Ajouter / Enregistrer</button>
+              <button class="btn btn-outline-secondary" id="resetBtn" type="button">Réinitialiser</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="productsList" class="list-group"></div>
+    </div>
+
+    <!-- site configuration moved to site-config.html -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/admin.js"></script>
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">Confirmer</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+          <div class="modal-body">Êtes-vous sûr(e) ?</div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button id="confirmDeleteBtn" type="button" class="btn btn-danger">Supprimer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
+      <div id="toastContainer"></div>
+    </div>
+  </body>
+</html>

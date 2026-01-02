@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Configuration du site - O'naan Pizza</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>.admin-panel{max-width:980px;margin:60px auto}</style>
+  </head>
+  <body>
+    <div class="container admin-panel">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+        <div class="container-fluid px-0">
+          <a class="navbar-brand fw-bold" href="admin.html">Administration</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="adminNav">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+              <li class="nav-item"><a class="nav-link" href="admin.html">Produits</a></li>
+              <li class="nav-item"><a class="nav-link" href="daily-specials.html">Plats du jour</a></li>
+              <li class="nav-item"><a class="nav-link active" href="site-config.html">Configuration</a></li>
+              <li class="nav-item"><a class="nav-link" href="index.html" target="_blank">Voir le site</a></li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <p class="small text-muted">Gérer les images du hero (diaporama)</p>
+          <div class="mb-2">
+            <input id="heroFile" type="file" accept="image/*" class="form-control" multiple>
+          </div>
+          <div id="heroList" class="mb-3">
+            <div class="text-center text-muted py-4">
+              <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Chargement...</span>
+              </div>
+              <div class="mt-2">Chargement des images du hero...</div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button id="saveHero" class="btn btn-primary">Enregistrer le diaporama</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Informations générales</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="restaurantName" class="form-label">Nom du restaurant</label>
+              <input type="text" class="form-control" id="restaurantName" placeholder="O'naan Pizza" disabled>
+            </div>
+            <div class="col-md-6">
+              <label for="logoFile" class="form-label">Logo</label>
+              <input type="file" class="form-control" id="logoFile" accept="image/*" disabled>
+              <div id="currentLogo" class="mt-2">
+                <div class="text-center text-muted py-2">
+                  <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                  </div>
+                  <div class="small">Chargement du logo...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Coordonnées de contact</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="contactAddress" class="form-label">Adresse</label>
+              <input type="text" class="form-control" id="contactAddress" placeholder="9 Rue Charles Schmidt, 93400 Saint-Ouen-sur-Seine" disabled>
+            </div>
+            <div class="col-md-6">
+              <label for="contactPhone" class="form-label">Téléphone</label>
+              <input type="text" class="form-control" id="contactPhone" placeholder="01 89 46 58 49" disabled>
+            </div>
+            <div class="col-md-6">
+              <label for="contactEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="contactEmail" placeholder="contact@onaanpizza.fr" disabled>
+            </div>
+            <div class="col-md-6">
+              <label for="contactHours" class="form-label">Horaires d'ouverture</label>
+              <input type="text" class="form-control" id="contactHours" placeholder="7/7j 10h-00h" disabled>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mb-4">
+        <button id="saveConfig" class="btn btn-success">Enregistrer toutes les configurations</button>
+        <button id="resetConfig" class="btn btn-outline-secondary">Réinitialiser</button>
+        <button id="debugConfig" class="btn btn-outline-info">Voir config actuelle</button>
+      </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/site-config.js"></script>
+
+    <!-- Toasts -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
+      <div id="toastContainer"></div>
+    </div>
+  </body>
+</html>

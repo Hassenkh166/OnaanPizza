@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Promotions - O'naan Pizza</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+      .admin-panel{max-width:1100px;margin:40px auto}
+      .promo-thumb{width:90px;height:64px;object-fit:cover;border-radius:8px}
+    </style>
+  </head>
+  <body>
+    <div class="container admin-panel">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+        <div class="container-fluid px-0">
+          <a class="navbar-brand fw-bold" href="admin.html">Administration</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="adminNav">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+              <li class="nav-item"><a class="nav-link" href="admin.html">Produits</a></li>
+              <li class="nav-item"><a class="nav-link active" href="daily-specials.html">Promotions</a></li>
+              <li class="nav-item"><a class="nav-link" href="site-config.html">Configuration</a></li>
+              <li class="nav-item"><a class="nav-link" href="index.html" target="_blank">Voir le site</a></li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="mb-3">Ajouter / Éditer une promotion</h5>
+              <form id="promoForm">
+                <input type="hidden" id="promoId">
+                <div class="mb-3">
+                  <label class="form-label">Titre *</label>
+                  <input id="promoTitle" class="form-control" placeholder="Ex: Menu Étudiant" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Sous-titre *</label>
+                  <input id="promoSubtitle" class="form-control" placeholder="Ex: -20% avec carte étudiante" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Badge (prix ou réduction)</label>
+                  <input id="promoBadge" class="form-control" placeholder="Ex: -20%, 15€">
+                  <small class="text-muted">Affiché sur le badge de la carte</small>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Image *</label>
+                  <input id="promoImage" type="file" accept="image/*" class="form-control">
+                  <div id="promoPreview" class="mt-2"></div>
+                </div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-primary" id="savePromo">Enregistrer</button>
+                  <button class="btn btn-outline-secondary" type="button" id="resetPromo">Réinitialiser</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="mb-0">Promotions actives</h5>
+                <button class="btn btn-sm btn-outline-secondary" id="refreshPromos">Rafraîchir</button>
+              </div>
+              <div id="promotionsList" class="list-group"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/promotions-admin.js"></script>
+  </body>
+</html>
