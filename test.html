@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test du Style de Texte de Promotion</title>
+
+  <!-- 1. Importation des polices depuis Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* --- Styles de base pour la page de test --- */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #333;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* --- Styles de la carte de promotion --- */
+    .promo-card-classic {
+      position: relative;
+      width: 300px;
+      height: 400px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3 );
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      transition: transform 0.3s ease;
+    }
+    
+    .promo-card-classic:hover {
+        transform: translateY(-10px);
+    }
+
+    .promo-card-classic__bg-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    
+    .promo-card-classic:hover .promo-card-classic__bg-image {
+        transform: scale(1.05);
+    }
+
+    .promo-card-classic__overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.8) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .promo-card-classic__header {
+      text-align: center;
+    }
+
+    .promo-card-classic__badge {
+      position: absolute;
+      top: 15px;
+      left: -30px;
+      background-color: #007bff;
+      padding: 5px 30px;
+      transform: rotate(-45deg);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .promo-card-classic__title {
+      background-color: #e43a3a;
+      display: inline-block;
+      padding: 8px 20px;
+      font-size: 1.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+
+    .promo-card-classic__body {
+        display: flex;
+        justify-content: flex-start;
+        padding-left: 5px;
+    }
+
+    /* ================================================================== */
+    /* ==================== VOTRE STYLE EST INTÉGRÉ ICI ================= */
+    /* ================================================================== */
+    .description-promo {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #f5f5f5;
+      line-height: 1.4;
+      text-align: left;
+      
+      /* Ombre pour la lisibilité sur l'image */
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      
+      /* Limitation de largeur pour ne pas écraser le prix */
+      max-width: 65%;
+      margin-bottom: 15px;
+      margin-top: 0;
+    }
+
+    .promo-card-classic__price-tag {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 80px;
+      height: 80px;
+      background-color: #ffc107;
+      color: #000;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      transform: rotate(15deg);
+    }
+
+    .promo-card-classic__price-new {
+      font-size: 1.8rem;
+      font-weight: 900;
+    }
+
+    .promo-card-classic__price-old {
+      font-size: 1rem;
+      text-decoration: line-through;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 2. La carte de promotion à afficher -->
+  <div class="promo-card-classic">
+    
+    <!-- Image en arrière-plan -->
+    <img src="https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?q=80&w=400" alt="Promotion Pizza" class="promo-card-classic__bg-image">
+    
+    <!-- Contenu superposé -->
+    <div class="promo-card-classic__overlay">
+      
+      <div class="promo-card-classic__header">
+        <div class="promo-card-classic__badge">SOIRÉE</div>
+        <div class="promo-card-classic__title">PROMO DUO</div>
+      </div>
+      
+      <!-- La description utilise votre classe .description-promo -->
+      <div class="promo-card-classic__body">
+        <p class="description-promo">
+          2 PIZZAS AU CHOIX  
++ 2 BOISSONS OFFERTES
+        </p>
+      </div>
+      
+      <div class="promo-card-classic__price-tag">
+        <span class="promo-card-classic__price-new">15€</span>
+        <span class="promo-card-classic__price-old">20€</span>
+      </div>
+      
+    </div>
+  </div>
+
+</body>
+</html>

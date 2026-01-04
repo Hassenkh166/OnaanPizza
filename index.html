@@ -6,6 +6,12 @@
     <title>O'naan Pizza</title>
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts - Elegant Restaurant Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&family=Great+Vibes&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- Swiper (promotions) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <!-- Tailwind utility classes (for radial menu styles) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fonts + custom styles -->
@@ -19,9 +25,9 @@
     <!-- Header / Navigation -->
     <header class="site-header">
       <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark navbar-transparent py-3 fixed-top" aria-label="Main navigation">
-        <div class="container">
-          <a class="navbar-brand d-flex align-items-center" href="#top">
-            <img src="assets/images/logo.png" alt="O'naan Pizza" class="logo-img restaurant-logo">
+        <div class="logo-container">
+          <a class="navbar-brrand d-flex align-items-center" href="#top">
+            <img src="" alt="O'naan Pizza" class="logo-img restaurant-logo">
           </a>
 
         </div>
@@ -36,15 +42,43 @@
   <div class="hero-overlay"></div>
 
   <div class="hero-content text-center text-white">
-    <h1 class="fw-bold hero-title-main">Bienvenue chez <span class="restaurant-name-part1">O'naan</span> <span class="restaurant-name-part2">Pizza</span></h1>
-    <p class="lead hero-subtitle">L'art de la pizza artisanale</p>
-    <p class="hero-description">Des saveurs authentiques et généreuses, préparées avec passion</p>
+    <img src="assets/images/NewLogo.png" alt="O'naan Pizza" class="hero-logo mb-3">
+    <h1 class="fw-bold hero-welcome">Bienvenue chez nous</h1>
+    <p class="lead hero-subtitle">Des produits frais et de qualité pour des saveurs authentiques</p>
+    <p class="hero-description">Préparés avec passion pour vous offrir le meilleur de la cuisine tunisienne</p>
     <a href="#menu" class="btn-cta mt-3 px-5 py-3 fw-semibold">Découvrir notre carte</a>
   </div>
 </section>
     </header>
 
     <main class="bg">
+      <!-- Divider entre Hero et Promotions -->
+      <div class="container">
+        <div class="section-divider" aria-hidden="true">
+          <span class="divider-line"></span>
+          <span class="divider-center">
+            <span class="divider-emoji">🍕</span>
+          </span>
+          <span class="divider-line"></span>
+        </div>
+      </div>
+
+      <!-- Promotions -->
+      <section id="promotions" class="promotions-section">
+        <div class="container">
+          <h2 class="section-title text-center">Nos Promotions du Moment</h2>
+          <div class="swiper promotions-carousel">
+            <div class="swiper-wrapper" id="promotionsWrapper">
+              <!-- Promotions dynamiques -->
+            </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-pagination"></div>
+          </div>
+          <p id="noPromotions" class="text-center text-muted mt-3 d-none">Aucune promotion pour le moment.</p>
+        </div>
+      </section>
+
       <!-- Sections: Menu -->
       <div class="container">
         <div class="section-divider" aria-hidden="true">
@@ -211,8 +245,7 @@
           <!-- Logo et description -->
           <div class="col-lg-4 col-md-6">
             <div class="footer-brand">
-              <img src="assets/images/logo.png" alt="O'naan Pizza" class="footer-logo restaurant-logo">
-              <h3 class="restaurant-name mt-3">O'naan Pizza</h3>
+              <img src="" alt="O'naan Pizza" class="footer-logo restaurant-logo">
               <p class="footer-description">Des saveurs authentiques qui régalent depuis 2020. Pizzas artisanales, kebabs savoureux et naans généreux préparés avec passion.</p>
             </div>
           </div>
@@ -301,9 +334,11 @@
     <div id="overlay" class="menu-overlay"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script src="js/products.js"></script>
     <script src="js/reviews.js"></script>
+    <script src="js/promotions.js"></script>
 
   </body>
 </html>

@@ -25,9 +25,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Navbar background on scroll
   var navbar = document.getElementById('mainNavbar');
+  let scrollTimer = null;
   function onScroll() {
-    if (window.scrollY > 20) navbar.classList.add('scrolled');
-    else navbar.classList.remove('scrolled');
+    if (window.scrollY > 20) {
+      navbar.classList.add('scrolled');
+      // Clear previous timer
+      if (scrollTimer) clearTimeout(scrollTimer);
+      // Hide background after 1 second of no scrolling
+      scrollTimer = setTimeout(() => {
+        navbar.classList.remove('scrolled');
+      }, 100);
+    } else {
+      navbar.classList.remove('scrolled');
+    }
   }
   onScroll();
   document.addEventListener('scroll', onScroll);
