@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="d-flex align-items-center mb-2" data-idx="${idx}">
         <img src="${h.path}" style="width:120px;height:70px;object-fit:cover;border-radius:6px;margin-right:10px">
         <div class="flex-fill">
-          <div>${h.path}</div>
+          <div class="hero-path-ellipsis" title="${h.path}">${h.path}</div>
         </div>
         <div class="btn-group ms-2">
           <button class="btn btn-sm btn-outline-secondary move-up" ${idx===0? 'disabled':''}>↑</button>

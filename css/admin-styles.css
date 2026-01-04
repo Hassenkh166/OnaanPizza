@@ -1,0 +1,652 @@
+/* ===================================
+   ADMIN PANEL MODERN STYLES
+   =================================== */
+
+/* Admin Body */
+body.admin-body {
+  font-family: 'Lato', sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 260px;
+  height: 100vh;
+  background: linear-gradient(180deg, rgba(229, 57, 53, 0.95) 0%, rgba(198, 40, 40, 0.95) 100%);
+  backdrop-filter: blur(10px);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+  padding: 2rem 0;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.admin-logo {
+  text-align: center;
+  padding: 0 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2rem;
+}
+
+.admin-logo h3 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 800;
+  color: #fff;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.admin-logo p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}
+
+.admin-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-nav-item {
+  margin: 0;
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+}
+
+.admin-nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-left-color: #FFD700;
+}
+
+.admin-nav-link.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-left-color: #FFD700;
+  font-weight: 600;
+}
+
+.admin-nav-link i {
+  width: 20px;
+  font-size: 1.1rem;
+}
+
+/* Main Content */
+.admin-main {
+  margin-left: 260px;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+.admin-header {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.admin-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin: 0;
+}
+
+.admin-header p {
+  color: #757575;
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.glass-card .card-body {
+  padding: 2rem;
+}
+
+.glass-card h5 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+}
+
+/* Form Controls */
+.form-control, .form-select {
+  border-radius: 12px;
+  border: 2px solid rgba(229, 57, 53, 0.2);
+  padding: 0.75rem 1rem;
+  font-family: 'Lato', sans-serif;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #E53935;
+  box-shadow: 0 0 0 0.2rem rgba(229, 57, 53, 0.15);
+}
+
+/* Buttons */
+.btn {
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(229, 57, 53, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(229, 57, 53, 0.4);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #43A047 0%, #2E7D32 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(67, 160, 71, 0.3);
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(67, 160, 71, 0.4);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(229, 57, 53, 0.3);
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(229, 57, 53, 0.4);
+}
+
+.btn-outline-info {
+  color: #1565c0;
+  border-color: #1565c0;
+  background: #fff;
+}
+
+.btn-outline-info:hover, .btn-outline-info:focus {
+  color: #fff;
+  background: #1565c0;
+  border-color: #1565c0;
+}
+
+/* Product/Promo Lists */
+.product-item, .promo-item {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.product-item:hover, .promo-item:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateX(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Thumbnails */
+.promo-thumb {
+  width: 90px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Admin Panel */
+.admin-panel {
+  max-width: 100%;
+  margin: 0;
+}
+
+/* Rend le conteneur admin-panel transparent (fix bug fond gris) */
+.container-fluid.admin-panel {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* List Group Items */
+.list-group-item {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.list-group-item:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateX(4px);
+}
+
+/* ===================================
+   MOBILE RESPONSIVE DESIGN
+   =================================== */
+
+/* Hamburger Menu Button */
+.admin-hamburger {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1100;
+  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(229, 57, 53, 0.4);
+  transition: all 0.3s ease;
+}
+
+.admin-hamburger:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 24px rgba(229, 57, 53, 0.5);
+}
+
+.admin-hamburger:active {
+  transform: scale(0.95);
+}
+
+.admin-hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: white;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.admin-hamburger span::before,
+.admin-hamburger span::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 2px;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.admin-hamburger span::before {
+  top: -8px;
+}
+
+.admin-hamburger span::after {
+  top: 8px;
+}
+
+/* Hamburger active state (X) */
+.admin-hamburger.active span {
+  background: transparent;
+}
+
+.admin-hamburger.active span::before {
+  transform: rotate(45deg);
+  top: 0;
+}
+
+.admin-hamburger.active span::after {
+  transform: rotate(-45deg);
+  top: 0;
+}
+
+/* Overlay for mobile */
+.admin-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.admin-overlay.active {
+  opacity: 1;
+}
+
+/* Centrer la prévisualisation du logo dans la config */
+#currentLogo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+}
+
+#currentLogo img {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ===================================
+   RESPONSIVE BREAKPOINTS
+   =================================== */
+
+/* Tablets and below (≤992px) */
+@media (max-width: 992px) {
+  .admin-hamburger {
+    display: flex;
+  }
+  
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 280px;
+  }
+  
+  .admin-sidebar.active {
+    transform: translateX(0);
+  }
+  
+  .admin-main {
+    margin-left: 0;
+    padding: 5rem 1.5rem 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .admin-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .glass-card .card-body {
+    padding: 1.5rem;
+  }
+  
+  /* Touch-friendly buttons */
+  .btn {
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+  
+  .form-control, .form-select {
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+}
+
+/* Mobile (≤768px) */
+@media (max-width: 768px) {
+  .admin-hamburger {
+    width: 46px;
+    height: 46px;
+  }
+  
+  .admin-main {
+    padding: 5rem 1rem 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .admin-header {
+    padding: 1.25rem 1.5rem;
+  }
+  
+  .admin-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .admin-header p {
+    font-size: 0.875rem;
+  }
+  
+  .glass-card .card-body {
+    padding: 1.25rem;
+  }
+  
+  .glass-card h5 {
+    font-size: 1.1rem;
+  }
+  
+  /* Stack columns on mobile */
+  .row.g-4 {
+    gap: 1rem !important;
+  }
+  
+  /* Reduce card hover effects on mobile */
+  .glass-card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .product-item:hover, .promo-item:hover {
+    transform: translateX(4px);
+  }
+  
+  /* Stack promotion list items vertically */
+  .list-group-item.d-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+  
+  .list-group-item .btn-group {
+    width: 100%;
+    display: flex;
+    margin-top: 0.5rem;
+  }
+  
+  .list-group-item .btn-group .btn {
+    flex: 1;
+  }
+}
+
+/* Small mobile (≤576px) */
+@media (max-width: 576px) {
+  .admin-hamburger {
+    top: 0.75rem;
+    left: 0.75rem;
+    width: 44px;
+    height: 44px;
+  }
+  
+  .admin-main {
+    padding: 4.5rem 0.75rem 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .admin-header {
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+  }
+  
+  .admin-header h1 {
+    font-size: 1.35rem;
+  }
+  
+  .glass-card {
+    border-radius: 16px;
+  }
+  
+  .glass-card .card-body {
+    padding: 1rem;
+  }
+  
+  .btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+  }
+  
+  .form-control, .form-select {
+    padding: 0.75rem 0.875rem;
+  }
+  
+  .product-item, .promo-item {
+    padding: 1rem;
+  }
+  
+  /* Configuration page specific */
+  .d-flex.gap-2 {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  .d-flex.gap-2 .btn {
+    width: 100%;
+  }
+  
+  /* Hero list items - stack vertically */
+  #heroList .d-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+  }
+  
+  #heroList .d-flex img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 180px;
+  }
+  
+  #heroList .btn-group {
+    width: 100%;
+    display: flex;
+  }
+  
+  #heroList .btn-group .btn {
+    flex: 1;
+  }
+}
+
+/* Large screens optimization (≥1400px) */
+@media (min-width: 1400px) {
+  .admin-main {
+    padding: 2.5rem 3rem;
+  }
+  
+  .admin-header {
+    padding: 2rem 2.5rem;
+  }
+  
+  .glass-card .card-body {
+    padding: 2.5rem;
+  }
+}
+
+/* Truncate hero image path with ellipsis */
+.hero-path-ellipsis {
+  max-width: 180px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ===================================
+   ÉLÉGANT AFFICHAGE DES CATÉGORIES
+   =================================== */
+
+/* Style élégant pour les catégories dans la liste admin */
+#categoriesList .list-group-item {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  border: 1px solid rgba(229, 57, 53, 0.15);
+  border-radius: 16px;
+  margin-bottom: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #2c2c2c;
+  box-shadow: 0 4px 16px rgba(229, 57, 53, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+#categoriesList .list-group-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #E53935 0%, #C62828 100%);
+  border-radius: 0 4px 4px 0;
+  transition: width 0.3s ease;
+}
+
+#categoriesList .list-group-item:hover {
+  background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+  transform: translateX(8px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(229, 57, 53, 0.15);
+  border-color: rgba(229, 57, 53, 0.25);
+}
+
+#categoriesList .list-group-item:hover::before {
+  width: 6px;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.3);
+}
+
+#categoriesList .list-group-item .btn-outline-danger {
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-color: rgba(229, 57, 53, 0.3);
+  color: #C62828;
+  background: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+#categoriesList .list-group-item .btn-outline-danger:hover {
+  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+  border-color: #E53935;
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
+}

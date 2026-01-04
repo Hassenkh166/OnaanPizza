@@ -5,30 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Configuration du site - O'naan Pizza</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/styles.css">
-    <style>.admin-panel{max-width:980px;margin:60px auto}</style>
+    <link rel="stylesheet" href="css/admin-styles.css">
   </head>
-  <body>
-    <div class="container admin-panel">
-      <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
-        <div class="container-fluid px-0">
-          <a class="navbar-brand fw-bold" href="admin.html">Administration</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="adminNav">
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-              <li class="nav-item"><a class="nav-link" href="admin.html">Produits</a></li>
-              <li class="nav-item"><a class="nav-link" href="daily-specials.html">Promotions</a></li>
-              <li class="nav-item"><a class="nav-link active" href="site-config.html">Configuration</a></li>
-              <li class="nav-item"><a class="nav-link" href="index.html" target="_blank">Voir le site</a></li>
-            </ul>
-          </div>
-        </div>
-      </nav>
+  <body class="admin-body">
+    <!-- Mobile Hamburger Button -->
+    <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle menu">
+      <span></span>
+    </button>
 
-      <div class="card mb-4">
+    <!-- Mobile Overlay -->
+    <div class="admin-overlay" id="adminOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="admin-logo">
+        <h3>O'naan Pizza</h3>
+        <p>Panneau d'administration</p>
+      </div>
+      <nav>
+        <ul class="admin-nav">
+          <li class="admin-nav-item">
+            <a href="admin.html" class="admin-nav-link">
+              <i class="fas fa-box"></i>
+              <span>Produits</span>
+            </a>
+          </li>
+          <li class="admin-nav-item">
+            <a href="daily-specials.html" class="admin-nav-link">
+              <i class="fas fa-tags"></i>
+              <span>Promotions</span>
+            </a>
+          </li>
+          <li class="admin-nav-item">
+            <a href="site-config.html" class="admin-nav-link active">
+              <i class="fas fa-cog"></i>
+              <span>Configuration</span>
+            </a>
+          </li>
+          <li class="admin-nav-item">
+            <a href="index.html" target="_blank" class="admin-nav-link">
+              <i class="fas fa-external-link-alt"></i>
+              <span>Voir le site</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+      <div class="admin-header">
+        <h1>Configuration du Site</h1>
+        <p>Gérer les paramètres généraux du site web</p>
+      </div>
+
+      <div class="card glass-card mb-4">
         <div class="card-body">
           <p class="small text-muted">Gérer les images du hero (diaporama)</p>
           <div class="mb-2">
@@ -48,7 +87,7 @@
         </div>
       </div>
 
-      <div class="card mb-4">
+      <div class="card glass-card mb-4">
         <div class="card-header">
           <h5 class="mb-0">Informations générales</h5>
         </div>
@@ -74,7 +113,7 @@
         </div>
       </div>
 
-      <div class="card mb-4">
+      <div class="card glass-card mb-4">
         <div class="card-header">
           <h5 class="mb-0">Coordonnées de contact</h5>
         </div>
@@ -106,9 +145,10 @@
         <button id="debugConfig" class="btn btn-outline-info">Voir config actuelle</button>
       </div>
 
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/admin-responsive.js"></script>
     <script src="js/site-config.js"></script>
 
     <!-- Toasts -->

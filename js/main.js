@@ -56,29 +56,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (Array.isArray(data) && data.length){
           container.innerHTML = data.map(d => `<div class="slide" style="background-image:url('${d.path || d}')"></div>`).join('');
         } else {
-          // fallback to default images if no config
-          container.innerHTML = `
-            <div class="slide active" style="background-image: url('./assets/images/prod_melaoui.png');"></div>
-            <div class="slide" style="background-image: url('./assets/images/pate.jpg');"></div>
-            <div class="slide" style="background-image: url('./assets/images/prod_fricasse.png');"></div>
-          `;
+          // Fallback: fond noir avec gradient
+          container.innerHTML = `<div class="slide active" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);"></div>`;
         }
       } else {
-        // fallback if API fails
-        container.innerHTML = `
-          <div class="slide active" style="background-image: url('./assets/images/prod_melaoui.png');"></div>
-          <div class="slide" style="background-image: url('./assets/images/pate.jpg');"></div>
-          <div class="slide" style="background-image: url('./assets/images/prod_fricasse.png');"></div>
-        `;
+        // Fallback: fond noir avec gradient
+        container.innerHTML = `<div class="slide active" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);"></div>`;
       }
     }catch(e){ 
       console.warn('Could not fetch hero config', e); 
-      // fallback
-      container.innerHTML = `
-        <div class="slide active" style="background-image: url('./assets/images/prod_melaoui.png');"></div>
-        <div class="slide" style="background-image: url('./assets/images/pate.jpg');"></div>
-        <div class="slide" style="background-image: url('./assets/images/prod_fricasse.png');"></div>
-      `;
+      // Fallback: fond noir avec gradient
+      container.innerHTML = `<div class="slide active" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);"></div>`;
     }
 
     slides = document.querySelectorAll('.hero-slideshow .slide');

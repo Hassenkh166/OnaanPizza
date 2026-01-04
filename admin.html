@@ -5,32 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin - O'naan Pizza</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/styles.css">
-    <style>
-      .admin-panel{max-width:980px;margin:60px auto}
-      .product-row{transition:background .18s}
-    </style>
+    <link rel="stylesheet" href="css/admin-styles.css">
   </head>
   <body>
-    <div class="container admin-panel">
-      <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
-        <div class="container-fluid px-0">
-          <a class="navbar-brand fw-bold" href="admin.html">Administration</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="adminNav">
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-              <li class="nav-item"><a class="nav-link active" href="admin.html">Produits</a></li>
-              <li class="nav-item"><a class="nav-link" href="daily-specials.html">Promotions</a></li>
-              <li class="nav-item"><a class="nav-link" href="site-config.html">Configuration</a></li>
-              <li class="nav-item"><a class="nav-link" href="index.html" target="_blank">Voir le site</a></li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-      <div class="card mb-4">
+    <!-- Mobile Hamburger Button -->
+    <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle menu">
+      <span></span>
+    </button>
+
+    <!-- Mobile Overlay -->
+    <div class="admin-overlay" id="adminOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="admin-logo">
+        <h3>O'naan Pizza</h3>
+        <p>Administration</p>
+      </div>
+      <ul class="admin-nav">
+        <li class="admin-nav-item">
+          <a href="admin.html" class="admin-nav-link active">
+            <i class="fas fa-pizza-slice"></i>
+            <span>Produits</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a href="daily-specials.html" class="admin-nav-link">
+            <i class="fas fa-star"></i>
+            <span>Promotions</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a href="site-config.html" class="admin-nav-link">
+            <i class="fas fa-cog"></i>
+            <span>Configuration</span>
+          </a>
+        </li>
+        <li class="admin-nav-item" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+          <a href="index.html" target="_blank" class="admin-nav-link">
+            <i class="fas fa-external-link-alt"></i>
+            <span>Voir le site</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+      <div class="admin-header">
+        <h1><i class="fas fa-pizza-slice me-2" style="color: #E53935;"></i>Gestion des Produits</h1>
+        <p>Ajoutez, modifiez ou supprimez vos produits</p>
+      </div>
+
+    <div class="container-fluid admin-panel">
+      <div class="card glass-card mb-4">
 
      <div class="card mb-4">
          <div class="card-body">
@@ -47,7 +83,7 @@
       </div>
 
 
-      <div class="card mb-4">
+      <div class="card glass-card mb-4">
         <div class="card-body">
           <form id="productForm">
             <input type="hidden" id="productId">
@@ -83,11 +119,11 @@
 
       <div id="productsList" class="list-group"></div>
     </div>
+    </main>
 
     <!-- site configuration moved to site-config.html -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/products.js"></script>
     <script src="js/admin.js"></script>
     <!-- Confirmation Modal -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
@@ -107,5 +143,7 @@
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
       <div id="toastContainer"></div>
     </div>
+
+    <script src="js/admin-responsive.js"></script>
   </body>
 </html>
