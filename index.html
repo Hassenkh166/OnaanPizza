@@ -21,34 +21,9 @@
       <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark navbar-transparent py-3 fixed-top" aria-label="Main navigation">
         <div class="container">
           <a class="navbar-brand d-flex align-items-center" href="#top">
-            <img src="assets/images/logo.png" alt="O'naan Pizza" class="logo-img">
+            <img src="assets/images/logo.png" alt="O'naan Pizza" class="logo-img restaurant-logo">
           </a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="mainNav">
-            <ul class="navbar-nav ms-auto align-items-lg-center">
-              <li class="nav-item"><a class="nav-link scroll-link active" href="#top" data-bubble-icon="🏠"><span class="nav-text">Accueil</span></a></li>
-              <li class="nav-item"><a class="nav-link scroll-link" href="#menu" data-bubble-icon="🍕"><span class="nav-text">Menu</span></a></li>
-              <li class="nav-item"><a class="nav-link scroll-link" href="#about" data-bubble-icon="ℹ️"><span class="nav-text">À propos</span></a></li>
-            </ul>
-          </div>
-        </div>
-        <div class="radial-menu-wrapper">
-          <div id="menuToggle" class="menu-toggle" aria-label="Menu rapide">
-            <i class="fas fa-bars"></i>
-          </div>
-          <div class="menu-items">
-            <a href="#top" class="menu-item item-1 scroll-link" title="Accueil">
-              <i class="fas fa-house"></i>
-            </a>
-            <a href="#menu" class="menu-item item-3 scroll-link" title="Carte">
-              <i class="fas fa-pizza-slice"></i>
-            </a>
-            <a href="#about" class="menu-item item-4 scroll-link" title="À propos">
-              <i class="fas fa-info-circle"></i>
-            </a>
-          </div>
+
         </div>
       </nav>
 
@@ -236,7 +211,7 @@
           <!-- Logo et description -->
           <div class="col-lg-4 col-md-6">
             <div class="footer-brand">
-              <img src="assets/images/logo.png" alt="O'naan Pizza" class="footer-logo">
+              <img src="assets/images/logo.png" alt="O'naan Pizza" class="footer-logo restaurant-logo">
               <h3 class="restaurant-name mt-3">O'naan Pizza</h3>
               <p class="footer-description">Des saveurs authentiques qui régalent depuis 2020. Pizzas artisanales, kebabs savoureux et naans généreux préparés avec passion.</p>
             </div>
@@ -284,13 +259,11 @@
               <a href="#" class="social-link" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
             </div>
             <div class="delivery-badges">
-              <a href="#" class="delivery-badge">
-                <i class="fas fa-motorcycle"></i>
-                <span>Deliveroo</span>
+              <a href="#" class="delivery-badge image-only">
+                <img src="assets/images/deliveroo.webp" alt="Deliveroo" class="delivery-img-only">
               </a>
-              <a href="#" class="delivery-badge">
-                <i class="fas fa-utensils"></i>
-                <span>UberEats</span>
+              <a href="#" class="delivery-badge image-only">
+                <img src="assets/images/uber.png" alt="Uber Eats" class="delivery-img-only">
               </a>
             </div>
           </div>
@@ -312,6 +285,18 @@
       </div>
     </div>
 </footer>
+
+    <!-- Menu radial flottant -->
+    <div class="radial-menu-wrapper">
+      <div id="menuToggle" class="menu-toggle" aria-label="Menu rapide">
+        <i class="fas fa-bars"></i>
+      </div>
+      <div class="menu-items">
+        <a href="#top" class="menu-item scroll-link" title="Accueil"><i class="fas fa-house"></i></a>
+        <a href="#menu" class="menu-item scroll-link" title="Carte"><i class="fas fa-pizza-slice"></i></a>
+        <a href="#about" class="menu-item scroll-link" title="À propos"><i class="fas fa-info-circle"></i></a>
+      </div>
+    </div>
 
     <div id="overlay" class="menu-overlay"></div>
 

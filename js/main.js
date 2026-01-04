@@ -128,27 +128,45 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load configuration first, then start slideshow
   loadGeneralConfig().then(() => startSlideshow());
 
-  // Radial menu toggle
+  // Radial menu toggle + dynamic positioning
   const menuToggle = document.getElementById('menuToggle');
   const overlay = document.getElementById('overlay');
-  if (menuToggle && overlay) {
-    const toggleMenu = () => {
-      menuToggle.classList.toggle('active');
-      overlay.classList.toggle('active');
-      const icon = menuToggle.querySelector('i');
-      if (icon) {
-        if (menuToggle.classList.contains('active')) {
-          icon.classList.replace('fa-bars', 'fa-times');
+  const menuItems = document.querySelectorAll('.radial-menu-wrapper .menu-item');
+
+  if (menuToggle && overlay && menuItems.length) {
+    const radius = 120;
+    const startAngle = 180; // start downward then sweep toward left (bottom-left quadrant)
+    const arcAngle = 90;    // quarter-circle spread
+    const angleIncrement = menuItems.length > 1 ? arcAngle / (menuItems.length - 1) : 0;
+
+    const setItems = (isActive) => {
+      menuItems.forEach((item, index) => {
+        if (isActive) {
+          const angle = startAngle + (index * angleIncrement);
+          item.style.opacity = '1';
+          item.style.pointerEvents = 'auto';
+          item.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
         } else {
-          icon.classList.replace('fa-times', 'fa-bars');
+          item.style.opacity = '0';
+          item.style.pointerEvents = 'none';
+          item.style.transform = 'scale(0.5)';
         }
-      }
+      });
     };
+
+    const toggleMenu = () => {
+      const isActive = menuToggle.classList.toggle('active');
+      overlay.classList.toggle('active', isActive);
+      const icon = menuToggle.querySelector('i');
+      if (icon) icon.className = isActive ? 'fas fa-times' : 'fas fa-bars';
+      setItems(isActive);
+    };
+
+    setItems(false);
     menuToggle.addEventListener('click', toggleMenu);
     overlay.addEventListener('click', toggleMenu);
 
-    // Close radial menu after clicking any radial link
-    document.querySelectorAll('.radial-menu-wrapper .menu-item').forEach(link => {
+    menuItems.forEach(link => {
       link.addEventListener('click', () => {
         if (menuToggle.classList.contains('active')) toggleMenu();
       });

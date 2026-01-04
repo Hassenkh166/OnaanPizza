@@ -337,6 +337,7 @@ main {
 
 .footer-brand {
   text-align: center;
+  padding: 0 1.25rem;
 }
 
 .footer-brand .footer-logo {
@@ -414,7 +415,7 @@ main {
 }
 
 .footer-links a i {
-  color: var(--secondary-color);
+  color: #FFD700;
   width: 20px;
 }
 
@@ -479,22 +480,37 @@ main {
 
 .delivery-badges {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
 }
 
 .delivery-badge {
   background: rgba(255, 255, 255, 0.05);
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0;
+  border-radius: 10px;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.8);
+  justify-content: center;
+  width: 76px;
+  height: 76px;
   text-decoration: none;
   transition: all var(--transition-fast);
-  font-size: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.delivery-badge.image-only:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+}
+
+.delivery-img-only {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .delivery-badge:hover {
@@ -1740,13 +1756,18 @@ main {
   color: var(--text-secondary) !important;
 }
 
-/* === Radial Menu (top-right) === */
-:root {
-  --menu-radius: 120px;
-  --transition-speed: 0.4s;
+/* Navbar helpers */
+#mainNavbar {
+  z-index: 1040;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, backdrop-filter 0.25s ease;
 }
 
-/* Remove default square outline on the Bootstrap toggler */
+#mainNavbar.scrolled {
+  background: rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(6px);
+}
+
 .navbar-toggler {
   border: none;
   box-shadow: none !important;
@@ -1757,106 +1778,74 @@ main {
   box-shadow: none !important;
 }
 
-#mainNavbar {
-  z-index: 1040; /* keep nav above overlay */
-}
-
-#mainNavbar .radial-menu-wrapper {
-  position: absolute;
-  top: 50%;
-  right: 20px;
-  transform: translateY(-50%);
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* === Radial Menu flottant (bas droite) === */
+.radial-menu-wrapper {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  z-index: 1100;
 }
 
 .menu-toggle {
-  width: 45px;
-  height: 45px;
+  width: 100%;
+  height: 100%;
   background-color: var(--primary-color);
+  color: var(--white);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 20px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: all var(--transition-speed);
-  z-index: 1003;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  z-index: 2;
   position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.menu-toggle:hover {
+  transform: scale(1.08);
 }
 
 .menu-toggle.active {
-  transform: rotate(45deg);
   background-color: #b91c1c;
 }
 
 .menu-items {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  z-index: 1002;
-  pointer-events: none;
-}
-
-.menu-toggle.active ~ .menu-items {
-  pointer-events: auto;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 
 .menu-item {
   position: absolute;
-  width: 48px;
-  height: 48px;
+  top: 0;
+  left: 0;
+  width: 52px;
+  height: 52px;
   background-color: #ffffff;
+  color: var(--primary-color);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.3s ease;
+  transform: scale(0.5);
   opacity: 0;
-  top: -24px;
-  left: -24px;
-  transform: scale(0);
-  transition: all var(--transition-speed) cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  pointer-events: none;
 }
 
 .menu-item:hover {
   background-color: var(--primary-color);
-  color: white;
-  transform: scale(1.1) !important;
-}
-
-/* Radial positioning for bottom-left expansion */
-.menu-toggle.active ~ .menu-items .item-1 {
-  opacity: 1;
-  transform: scale(1) translate(-41px, 113px);
-  transition-delay: 0.05s;
-}
-
-.menu-toggle.active ~ .menu-items .item-2 {
-  opacity: 1;
-  transform: scale(1) translate(-85px, 85px);
-  transition-delay: 0.1s;
-}
-
-.menu-toggle.active ~ .menu-items .item-3 {
-  opacity: 1;
-  transform: scale(1) translate(-113px, 41px);
-  transition-delay: 0.15s;
-}
-
-.menu-toggle.active ~ .menu-items .item-4 {
-  opacity: 1;
-  transform: scale(1) translate(-125px, 10px);
-  transition-delay: 0.2s;
+  color: var(--white);
+  transform: scale(1.08);
 }
 
 .menu-overlay {
