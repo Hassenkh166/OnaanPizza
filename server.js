@@ -1,71 +1,115 @@
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
-const sqlite3 = require('sqlite3').verbose();
 const multer = require('multer');
+const logger = require('./utils/logger');
 
-const app = express();
-app.use(cors());
-app.use(express.json({limit: '5mb'}));
+// Flag: are we using Postgres?
+const USING_PG = !!process.env.DATABASE_URL;
+
+// Migrations pour ajouter les nouvelles colonnes (SQLite-only)
+if (!USING_PG) {
+  db.serialize(() => {
 
 const DB_FILE = path.join(__dirname, 'data.db');
 const PORT = process.env.PORT || 3000;
 
-const dbExists = fs.existsSync(DB_FILE);
-const db = new sqlite3.Database(DB_FILE);
+// In production, silence default console.info/warn to keep logs minimal.
+if (process.env.NODE_ENV === 'production') {
+  console.log = () => {};
+  console.warn = () => {};
+}
 
-db.serialize(() => {
-  if (!dbExists) {
-    db.run(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, name TEXT, icon TEXT, display_order INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE products (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      slug TEXT UNIQUE,
-      title TEXT,
-      description TEXT,
-      price TEXT,
-      img TEXT,
-      category_id INTEGER,
-      badge TEXT,
-      bread_types TEXT,
-      is_spicy INTEGER DEFAULT 0,
-      is_new INTEGER DEFAULT 0,
-      is_popular INTEGER DEFAULT 0,
-      is_customizable INTEGER DEFAULT 0,
-      available_supplements TEXT,
-      FOREIGN KEY(category_id) REFERENCES categories(id)
-    )`);
-    // new single-row configuration table to store site-wide settings (can be extended later)
-    db.run(`CREATE TABLE configuration (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      theme TEXT,
-      hero_images TEXT,
-      logo TEXT,
-      restaurant_name TEXT,
-      about_images TEXT,
-      primary_color TEXT,
-      secondary_color TEXT,
-      accent_color TEXT,
-      contact_address TEXT,
-      contact_phone TEXT,
-      contact_email TEXT,
-      contact_hours TEXT
-    )`);
+// Database adapter: use Postgres when DATABASE_URL is provided, else fall back to SQLite
+let db;
+if (process.env.DATABASE_URL) {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
-    // seed categories with icons
-    const cats = [
-      {slug: 'pizzas', name: 'Pizzas', icon: '🍕', order: 1},
-      {slug: 'sandwichs', name: 'Sandwichs', icon: '🥖', order: 2},
-      {slug: 'assiettes', name: 'Assiettes', icon: '🍽️', order: 3},
-      {slug: 'desserts', name: 'Desserts', icon: '🍰', order: 4},
-      {slug: 'boissons', name: 'Boissons', icon: '🥤', order: 5},
-      {slug: 'supplements', name: 'Suppléments', icon: '➕', order: 6}
-    ];
-    const stmt = db.prepare('INSERT INTO categories (slug, name, icon, display_order) VALUES (?,?,?,?)');
-    for (let cat of cats) stmt.run(cat.slug, cat.name, cat.icon, cat.order);
-    stmt.finalize();
+  db = {
+    serialize: (fn) => { try { fn(); } catch(e) { console.warn('serialize error', e); } },
+    run: (sql, params, cb) => {
+      if (typeof params === 'function') { cb = params; params = []; }
+      pool.query(sql, params || []).then(res => { if (cb) cb && cb(null, { changes: res.rowCount, lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval) }); }).catch(err => cb && cb(err));
+    },
+    get: (sql, params, cb) => {
+      if (typeof params === 'function') { cb = params; params = []; }
+      pool.query(sql, params || []).then(res => cb && cb(null, (res.rows && res.rows[0]) || null)).catch(err => cb && cb(err));
+    },
+    all: (sql, params, cb) => {
+      if (typeof params === 'function') { cb = params; params = []; }
+      pool.query(sql, params || []).then(res => cb && cb(null, res.rows || [])).catch(err => cb && cb(err));
+    },
+    prepare: (sql) => {
+      return {
+        run: function() {
+          const args = Array.from(arguments);
+          const cb = (typeof args[args.length-1] === 'function') ? args.pop() : null;
+          const params = args;
+          pool.query(sql, params).then(res => cb && cb(null, { lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval), changes: res.rowCount })).catch(err => cb && cb(err));
+        },
+        finalize: function() { /* no-op */ }
+      };
+    }
+  };
+} else {
+  const sqlite3 = require('sqlite3').verbose();
+  const dbExists = fs.existsSync(DB_FILE);
+  db = new sqlite3.Database(DB_FILE);
 
-  
+  db.serialize(() => {
+    if (!dbExists) {
+      db.run(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, name TEXT, icon TEXT, display_order INTEGER DEFAULT 0)`);
+      db.run(`CREATE TABLE products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        slug TEXT UNIQUE,
+        title TEXT,
+        description TEXT,
+        price TEXT,
+        img TEXT,
+        category_id INTEGER,
+        badge TEXT,
+        bread_types TEXT,
+        is_spicy INTEGER DEFAULT 0,
+        is_new INTEGER DEFAULT 0,
+        is_popular INTEGER DEFAULT 0,
+        is_customizable INTEGER DEFAULT 0,
+        available_supplements TEXT,
+        FOREIGN KEY(category_id) REFERENCES categories(id)
+      )`);
+      // new single-row configuration table to store site-wide settings (can be extended later)
+      db.run(`CREATE TABLE configuration (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        theme TEXT,
+        hero_images TEXT,
+        logo TEXT,
+        restaurant_name TEXT,
+        about_images TEXT,
+        primary_color TEXT,
+        secondary_color TEXT,
+        accent_color TEXT,
+        contact_address TEXT,
+        contact_phone TEXT,
+        contact_email TEXT,
+        contact_hours TEXT
+      )`);
+
+      // seed categories with icons
+      const cats = [
+        {slug: 'pizzas', name: 'Pizzas', icon: '🍕', order: 1},
+        {slug: 'sandwichs', name: 'Sandwichs', icon: '🥖', order: 2},
+        {slug: 'assiettes', name: 'Assiettes', icon: '🍽️', order: 3},
+        {slug: 'desserts', name: 'Desserts', icon: '🍰', order: 4},
+        {slug: 'boissons', name: 'Boissons', icon: '🥤', order: 5},
+        {slug: 'supplements', name: 'Suppléments', icon: '➕', order: 6}
+      ];
+      const stmt = db.prepare('INSERT INTO categories (slug, name, icon, display_order) VALUES (?,?,?,?)');
+      for (let cat of cats) stmt.run(cat.slug, cat.name, cat.icon, cat.order);
+      stmt.finalize();
+
+    }
+  });
+}
   }
 });
 
@@ -118,53 +162,58 @@ db.serialize(() => {
     }
   });
 });
+}
 
-// ensure daily_specials table exists
-db.run(`CREATE TABLE IF NOT EXISTS daily_specials (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  product_id INTEGER,
-  special_id INTEGER,
-  note TEXT,
-  price_override TEXT,
-  ord INTEGER,
-  date TEXT,
-  FOREIGN KEY(product_id) REFERENCES products(id),
-  FOREIGN KEY(special_id) REFERENCES specials(id)
-)`);
+// In SQLite we create lightweight tables if missing. For Postgres, migrations should be applied separately.
+if (!USING_PG) {
+  // ensure daily_specials table exists
+  db.run(`CREATE TABLE IF NOT EXISTS daily_specials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER,
+    special_id INTEGER,
+    note TEXT,
+    price_override TEXT,
+    ord INTEGER,
+    date TEXT,
+    FOREIGN KEY(product_id) REFERENCES products(id),
+    FOREIGN KEY(special_id) REFERENCES specials(id)
+  )`);
 
-// ensure specials table exists (templates for daily specials)
-db.run(`CREATE TABLE IF NOT EXISTS specials (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT,
-  description TEXT,
-  price TEXT,
-  img TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
-)`);
+  // ensure specials table exists (templates for daily specials)
+  db.run(`CREATE TABLE IF NOT EXISTS specials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    description TEXT,
+    price TEXT,
+    img TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
 
-// create promotions table (replaces daily_specials functionality)
-db.run(`CREATE TABLE IF NOT EXISTS promotions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  subtitle TEXT,
-  badge_text TEXT,
-  image_url TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
-)`);
+  // create promotions table (replaces daily_specials functionality)
+  db.run(`CREATE TABLE IF NOT EXISTS promotions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    badge_text TEXT,
+    image_url TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
 
-// Reviews snapshots table (store daily snapshots from external providers)
-db.run(`CREATE TABLE IF NOT EXISTS reviews_snapshots (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  provider TEXT NOT NULL,
-  place_id TEXT NOT NULL,
-  fetched_at TEXT NOT NULL,
-  avg_rating REAL,
-  total_reviews INTEGER DEFAULT 0,
-  reviews_json TEXT
-)`);
+  // Reviews snapshots table (store daily snapshots from external providers)
+  db.run(`CREATE TABLE IF NOT EXISTS reviews_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT NOT NULL,
+    place_id TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,
+    avg_rating REAL,
+    total_reviews INTEGER DEFAULT 0,
+    reviews_json TEXT
+  )`);
+}
 
-// Migration: add badge_text column if missing
-db.serialize(() => {
+// Migration: add badge_text column if missing (SQLite-only)
+if (!USING_PG) {
+  db.serialize(() => {
   db.all("PRAGMA table_info(promotions)", (err, cols) => {
     if (err) return;
     const names = (cols || []).map(c => c.name);
@@ -175,10 +224,12 @@ db.serialize(() => {
       } catch(e) { console.warn('Migration failed (badge_text)'); }
     }
   });
-});
+  });
+}
 
-// lightweight migration: if existing daily_specials table was created earlier without special_id, add the column
-db.serialize(() => {
+// lightweight migration: if existing daily_specials table was created earlier without special_id, add the column (SQLite-only)
+if (!USING_PG) {
+  db.serialize(() => {
   db.all("PRAGMA table_info(daily_specials)", (err, cols) => {
     if (err) return; // ignore
     const names = (cols || []).map(c => c.name);
@@ -189,10 +240,12 @@ db.serialize(() => {
       } catch(e) { console.warn('Migration failed (special_id)'); }
     }
   });
-});
+  });
+}
 
-// Migration: add new columns to existing configuration table (only if upgrading from old version)
-db.serialize(() => {
+// Migration: add new columns to existing configuration table (only if upgrading from old version) (SQLite-only)
+if (!USING_PG) {
+  db.serialize(() => {
   db.all("PRAGMA table_info(configuration)", (err, cols) => {
     if (err) return; // ignore
     const names = (cols || []).map(c => c.name);
