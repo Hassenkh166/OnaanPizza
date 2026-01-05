@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', function(){
   const descInput = document.getElementById('productDesc');
   const categorySelect = document.getElementById('productCategory');
   const newCategory = document.getElementById('categoryName');
+  const categoryIcon = document.getElementById('categoryIcon');
+  const customIconOptions = document.getElementById('customIconOptions');
+  const categoryIconFile = document.getElementById('categoryIconFile');
+  const editingCategory = document.getElementById('editingCategory');
+  const categoryIconPreviewWrap = document.getElementById('categoryIconPreviewWrap');
+  const categoryIconPreview = document.getElementById('categoryIconPreview');
   const categoriesList = document.getElementById('categoriesList');
   const fileInput = document.getElementById('productFile');
   const preview = document.getElementById('preview');
@@ -20,38 +26,33 @@ document.addEventListener('DOMContentLoaded', function(){
   /*async function loadCategories(){
     const res = await fetch('/api/categories');
     const cats = await res.json();
-    categorySelect.innerHTML = '<option value="">Choisir une catégorie</option>' + cats.map(c => `<option value="${c.slug}">${c.name}</option>`).join('');
+    categorySelect.innerHTML = '<option value="">Choisir une catégorie</option>' + cats.map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
   }*/
   // Charger toutes les catégories et afficher
 async function loadCategories() {
   try {
    const res = await fetch('/api/categories');
     const cats = await res.json();
-    categorySelect.innerHTML = '<option value="">Choisir une catégorie</option>' + cats.map(c => `<option value="${c.slug}">${c.name}</option>`).join('');
+    categorySelect.innerHTML = '<option value="">Choisir une catégorie</option>' + cats.map(c => {
+      const iconHtml = (c.icon && (c.icon.startsWith('http') || c.icon.startsWith('/') || /\.(png|jpe?g|gif|svg)$/i.test(c.icon))) ? ` <img src="${c.icon}" style="height:18px; width:18px; object-fit:contain; margin-right:6px">` : (c.icon? c.icon+' ' : '');
+      return `<option value="${c.slug}">${iconHtml}${c.name}</option>`;
+    }).join('');
 
-    // Mettre à jour la liste avec boutons supprimer
-    categoriesList.innerHTML = cats.map(c => `
+    // Mettre à jour la liste avec boutons éditer / supprimer
+    categoriesList.innerHTML = cats.map(c => {
+      const iconHtml = (c.icon && (c.icon.startsWith('http') || c.icon.startsWith('/') || /\.(png|jpe?g|gif|svg)$/i.test(c.icon))) ? `<img src="${c.icon}" style="height:20px; width:20px; object-fit:contain; margin-right:8px">` : (c.icon? `<span class="me-2">${c.icon}</span>` : '');
+      return `
       <div class="list-group-item d-flex justify-content-between align-items-center">
-        ${c.name}
-        <button class="btn btn-sm btn-outline-danger" data-slug="${c.slug}">Supprimer</button>
+        <div>${iconHtml}${c.name}</div>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-outline-primary me-2" data-action="edit" data-slug="${c.slug}">Modifier</button>
+          <button class="btn btn-sm btn-outline-danger" data-action="delete" data-slug="${c.slug}">Supprimer</button>
+        </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
-    // Ajouter les listeners pour supprimer
-    categoriesList.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        if (!confirm('Supprimer cette catégorie ?')) return;
-        const slug = this.dataset.slug;
-        const delRes = await fetch(`/api/categories/${slug}`, { method: 'DELETE' });
-        if (!delRes.ok) {
-          const err = await delRes.json();
-          alert('Erreur: ' + (err.error || 'Erreur inconnue'));
-        } else {
-          await loadCategories();
-          alert('Catégorie supprimée avec succès.');
-        }
-      });
-    });
+    // listeners are handled by delegated handler attached below
 
   } catch(err) {
     console.error(err);
@@ -145,16 +146,58 @@ async function loadCategories() {
 
   const slug = name.toLowerCase().replace(/\s+/g,'-');
 
+  // determine icon value (selected or custom upload)
+  let icon = '';
+  if (categoryIcon) {
+    if (categoryIcon.value === 'custom') {
+      if (categoryIconFile && categoryIconFile.files && categoryIconFile.files.length) {
+        try {
+          const f = categoryIconFile.files[0];
+          const fd = new FormData(); fd.append('image', f);
+          const up = await fetch('/api/upload', { method: 'POST', body: fd });
+          if (up.ok) { const jr = await up.json(); icon = jr.url || ''; }
+          else { showToast('Erreur téléversement icône', 'danger'); }
+        } catch(e) { console.error(e); showToast('Erreur téléversement icône', 'danger'); }
+      }
+    } else {
+      icon = categoryIcon.value || '';
+    }
+  }
+
     try {
-      const res = await fetch('/api/categories', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, slug }) });
-      if (!res.ok) { const err = await res.json().catch(()=>({})); showToast('Erreur création catégorie', 'danger'); return; }
+      let res;
+      if (editingCategory && editingCategory.value) {
+        // update existing
+        const oldSlug = editingCategory.value;
+        res = await fetch(`/api/categories/${oldSlug}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, slug, icon }) });
+      } else {
+        // create new
+        res = await fetch('/api/categories', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, slug, icon }) });
+      }
+      if (!res.ok) { const err = await res.json().catch(()=>({})); showToast(err.error || 'Erreur création/édition catégorie', 'danger'); return; }
       await loadCategories();
-      // auto-select new category
+      // auto-select new or updated category
       categorySelect.value = slug;
       newCategory.value = '';
-      showToast('Catégorie ajoutée', 'success');
+      if (categoryIconFile) categoryIconFile.value = '';
+      if (categoryIcon) categoryIcon.value = '';
+      if (editingCategory) editingCategory.value = '';
+      if (addCatBtn) addCatBtn.textContent = 'Ajouter';
+      categoryIconPreview.src = '';
+      categoryIconPreviewWrap.classList.add('d-none');
+      showToast('Catégorie enregistrée', 'success');
     } catch(err) { console.error(err); showToast('Erreur réseau', 'danger'); }
 });
+
+  // show/hide custom icon options
+  if (categoryIcon && customIconOptions) {
+    categoryIcon.addEventListener('change', function(){
+      if (this.value === 'custom') customIconOptions.classList.remove('d-none');
+      else customIconOptions.classList.add('d-none');
+    });
+
+    // only upload option is supported for custom icons (file input visible)
+  }
 
 
   form.addEventListener('submit', async function(e){
@@ -189,6 +232,59 @@ async function loadCategories() {
   // initial load
   loadCategories().then(renderList).catch(err => { console.error(err); renderList(); });
 
+  // delegated handler for edit/delete on categories list (more robust)
+  if (categoriesList) {
+    categoriesList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const slug = btn.dataset.slug;
+      if (action === 'delete') {
+        if (!confirm('Supprimer cette catégorie ?')) return;
+        try {
+          const delRes = await fetch(`/api/categories/${slug}`, { method: 'DELETE' });
+          if (!delRes.ok) {
+            const err = await delRes.json().catch(()=>({}));
+            showToast(err.error || 'Erreur suppression catégorie', 'danger');
+          } else {
+            await loadCategories();
+            showToast('Catégorie supprimée', 'success');
+          }
+        } catch(err) { console.error(err); showToast('Erreur réseau', 'danger'); }
+      } else if (action === 'edit') {
+        try {
+          const res = await fetch('/api/categories');
+          const cats = await res.json();
+          const cat = cats.find(c => c.slug === slug);
+          if (!cat) return;
+          newCategory.value = cat.name;
+          editingCategory.value = cat.slug;
+          const optionExists = Array.from(categoryIcon.options).some(o => o.value === (cat.icon || ''));
+          if (cat.icon && optionExists) {
+            categoryIcon.value = cat.icon;
+            customIconOptions.classList.add('d-none');
+            categoryIconPreviewWrap.classList.add('d-none');
+          } else if (cat.icon) {
+            categoryIcon.value = 'custom';
+            customIconOptions.classList.remove('d-none');
+            if (cat.icon.startsWith('http') || cat.icon.startsWith('/') || /\.(png|jpe?g|gif|svg)$/i.test(cat.icon)) {
+              categoryIconPreview.src = cat.icon;
+              categoryIconPreviewWrap.classList.remove('d-none');
+            } else {
+              categoryIconPreview.src = '';
+              categoryIconPreviewWrap.classList.add('d-none');
+            }
+          } else {
+            categoryIcon.value = '';
+            customIconOptions.classList.add('d-none');
+            categoryIconPreviewWrap.classList.add('d-none');
+          }
+          addCatBtn.textContent = 'Enregistrer';
+        } catch(err) { console.error(err); showToast('Erreur chargement catégorie', 'danger'); }
+      }
+    });
+  }
+
   // site configuration moved to site-config.html (see js/site-config.js)
 
   // preview selected file
@@ -198,6 +294,19 @@ async function loadCategories() {
       if (!f) { preview.innerHTML = ''; return; }
       const url = URL.createObjectURL(f);
       preview.innerHTML = `<img src="${url}" style="max-width:160px; border-radius:8px">`;
+    });
+  }
+
+  // preview selected category icon file to avoid 404 when previewing before upload
+  if (categoryIconFile && categoryIconPreview) {
+    categoryIconFile.addEventListener('change', function(){
+      const f = this.files[0];
+      if (!f) { categoryIconPreview.src = ''; categoryIconPreviewWrap.classList.add('d-none'); return; }
+      const url = URL.createObjectURL(f);
+      categoryIconPreview.src = url;
+      categoryIconPreviewWrap.classList.remove('d-none');
+      // revoke objectURL after image loads to free memory
+      categoryIconPreview.onload = () => { URL.revokeObjectURL(url); };
     });
   }
 

@@ -73,6 +73,24 @@
           <h5>Ajouter une catégorie</h5>
           <form id="categoryForm" class="d-flex gap-2 align-items-center">
            <input id="categoryName" class="form-control" placeholder="Nom de la catégorie" required>
+           <input type="hidden" id="editingCategory" value="">
+           <select id="categoryIcon" class="form-select" style="width:160px;">
+             <option value="">Icône</option>
+             <option value="🍕">🍕 Pizza</option>
+             <option value="🥖">🥖 Sandwich</option>
+             <option value="🍽️">🍽️ Assiette</option>
+             <option value="🍰">🍰 Dessert</option>
+             <option value="🥤">🥤 Boisson</option>
+             <option value="➕">➕ Supplément</option>
+             <option value="🌯">🌯 Wrap</option>
+             <option value="custom">Personnalisé...</option>
+           </select>
+           <div id="customIconOptions" class="d-none" style="display:inline-flex;gap:.5rem;align-items:center;">
+             <input id="categoryIconFile" class="form-control" type="file" accept="image/*" style="width:180px;">
+           </div>
+           <div id="categoryIconPreviewWrap" class="d-none" style="margin-left:.5rem;">
+             <img id="categoryIconPreview" src="" alt="icone" style="height:28px;width:28px;object-fit:contain;border-radius:6px;">
+           </div>
            <button class="btn btn-success" id ="addCategory" type="button">Ajouter</button>
           </form>
          </div>

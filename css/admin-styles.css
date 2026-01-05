@@ -456,6 +456,14 @@ body.admin-body {
   .row.g-4 {
     gap: 1rem !important;
   }
+
+  /* Ensure category form wraps and custom icon input moves to its own line */
+  #categoryForm { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  #categoryForm > input, #categoryForm > select, #categoryForm > button { flex: 1 1 auto; min-width: 120px; }
+  #customIconOptions { flex-basis: 100%; display: none; gap: .5rem; align-items: center; margin-top: .25rem; }
+  #customIconOptions.d-none { display: none !important; }
+  #customIconOptions:not(.d-none) { display: flex !important; }
+  #categoryIconFile { width: 100% !important; }
   
   /* Reduce card hover effects on mobile */
   .glass-card:hover {

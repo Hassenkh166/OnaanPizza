@@ -419,39 +419,50 @@ app.get('/api/categories', (req, res) => {
 
 // create category (optional admin)
 app.post('/api/categories', (req,res) => {
-  const { slug, name } = req.body;
+  const { slug, name, icon } = req.body;
   if (!slug || !name) return res.status(400).json({error: 'slug & name required'});
-  db.run('INSERT INTO categories (slug, name) VALUES (?,?)', [slug, name], function(err){
+  db.run('INSERT INTO categories (slug, name, icon) VALUES (?,?,?)', [slug, name, icon || ''], function(err){
     if (err) return res.status(500).json({error: err.message});
     res.json({id: this.lastID});
   });
 });
 
-// delete category by slug (set products' category_id to NULL first)
+// update category (name, slug, icon)
+app.put('/api/categories/:slug', (req, res) => {
+  const oldSlug = req.params.slug;
+  const { name, slug, icon } = req.body;
+  console.log(`PUT /api/categories/${oldSlug} called with body:`, req.body);
+  if (!name) return res.status(400).json({ error: 'name required' });
+  db.run('UPDATE categories SET slug = ?, name = ?, icon = ? WHERE slug = ?', [slug || oldSlug, name, icon || '', oldSlug], function(err){
+    if (err) {
+      console.error('Error updating category:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    if (this.changes === 0) return res.status(404).json({ error: 'Category not found or no changes' });
+    res.json({ updated: this.changes });
+  });
+});
+
+// delete category by slug - PREVENT deletion if category contains products
 app.delete('/api/categories/:slug', (req, res) => {
   const slug = req.params.slug;
   db.get('SELECT id FROM categories WHERE slug = ?', [slug], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: 'Category not found' });
     const catId = row.id;
-    db.serialize(() => {
-      db.run('UPDATE products SET category_id = NULL WHERE category_id = ?', [catId], function(err){
-        if (err) return res.status(500).json({ error: err.message });
-        db.run('DELETE FROM categories WHERE id = ?', [catId], function(err){
-          if (err) return res.status(500).json({ error: err.message });
-          res.json({ deleted: this.changes });
-        });
+    // check if any products belong to this category
+    db.get('SELECT COUNT(*) as c FROM products WHERE category_id = ?', [catId], (err2, r2) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      const count = (r2 && r2.c) ? r2.c : 0;
+      if (count > 0) {
+        return res.status(400).json({ error: `Cannot delete category that contains ${count} product(s). Reassign or remove products first.` });
+      }
+      // safe to delete
+      db.run('DELETE FROM categories WHERE id = ?', [catId], function(err3){
+        if (err3) return res.status(500).json({ error: err3.message });
+        res.json({ deleted: this.changes });
       });
     });
-  });
-});
-
-app.delete('/api/categories/:slug', (req, res) => {
-  const slug = req.params.slug;
-  db.run('DELETE FROM categories WHERE slug=?', [slug], function(err){
-    if (err) return res.status(500).json({error: err.message});
-    if (this.changes === 0) return res.status(404).json({error: 'Catégorie non trouvée'});
-    res.json({deleted: this.changes});
   });
 });
 

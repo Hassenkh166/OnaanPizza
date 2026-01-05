@@ -2,7 +2,7 @@
 
 let categories = [];
 let products = [];
-let activeCategory = 'all';
+let activeCategory = '';
 
 // Load categories and products
 async function loadMenu() {
@@ -23,9 +23,9 @@ async function loadMenu() {
     console.log('📦 Products loaded:', products);
     
     // Sort categories by display_order
-    categories.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      categories.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
     
-    renderFilters();
+      renderFilters();
     renderProducts();
   } catch (err) {
     console.error('❌ Erreur chargement menu:', err);
@@ -41,11 +41,7 @@ function renderFilters() {
     return;
   }
   
-  const allCount = products.length;
-  
-  const filters = [
-    { slug: 'all', name: 'Tout', icon: '🍽️', count: allCount }
-  ];
+  const filters = [];
   
   categories.forEach(cat => {
     const count = products.filter(p => p.category_slug === cat.slug).length;
@@ -58,6 +54,9 @@ function renderFilters() {
       });
     }
   });
+
+  // If no active category chosen yet, default to the first available
+  if (!activeCategory && filters.length) activeCategory = filters[0].slug;
   
   console.log('🎯 Filters to render:', filters);
   
@@ -67,7 +66,7 @@ function renderFilters() {
       data-category="${f.slug}"
       onclick="filterProducts('${f.slug}')"
       style="animation-delay: ${index * 0.05}s">
-      <span class="pill-icon">${f.icon}</span>
+      <span class="pill-icon">${(f.icon && (f.icon.startsWith('http') || f.icon.startsWith('/') || /\.(png|jpe?g|gif|svg)$/i.test(f.icon))) ? `<img src="${f.icon}" style="height:18px; width:18px; object-fit:contain; margin-right:6px">` : (f.icon||'')}</span>
       <span class="pill-text">
         <span class="pill-name">${f.name}</span>
         <span class="pill-count">${f.count}</span>
