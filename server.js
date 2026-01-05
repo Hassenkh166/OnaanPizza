@@ -93,6 +93,10 @@ db.serialize(() => {
         } catch(e) { console.warn(`Migration failed (${m.col})`); }
       }
     });
+    // ensure no free-form badges remain in existing products
+    try {
+      db.run('UPDATE products SET badge = "" WHERE badge IS NOT NULL AND badge != ""', function(err){ if (err) console.warn('Could not clear legacy badges', err); else console.log('Cleared legacy product badge values'); });
+    } catch(e) { /* ignore */ }
   });
   
   db.all("PRAGMA table_info(categories)", (err, cols) => {
@@ -146,6 +150,17 @@ db.run(`CREATE TABLE IF NOT EXISTS promotions (
   badge_text TEXT,
   image_url TEXT,
   created_at TEXT DEFAULT (datetime('now'))
+)`);
+
+// Reviews snapshots table (store daily snapshots from external providers)
+db.run(`CREATE TABLE IF NOT EXISTS reviews_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  fetched_at TEXT NOT NULL,
+  avg_rating REAL,
+  total_reviews INTEGER DEFAULT 0,
+  reviews_json TEXT
 )`);
 
 // Migration: add badge_text column if missing
@@ -473,7 +488,7 @@ app.get('/api/products', (req, res) => {
   const { category } = req.query;
   let sql = `SELECT 
     p.id, p.slug, p.title, p.description, p.price, p.img, 
-    p.badge, p.bread_types, p.is_spicy, p.is_new, p.is_popular, p.is_customizable, p.available_supplements,
+    p.bread_types, p.is_spicy, p.is_new, p.is_popular, p.is_customizable, p.available_supplements,
     c.slug as category_slug, c.name as category_name 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id`;
@@ -633,6 +648,73 @@ app.delete('/api/promotions/:id', (req, res) => {
   });
 });
 
+// Fetch reviews from Google Places and store snapshot
+async function fetchAndStoreGoogleReviews(place_id, api_key) {
+  if (!place_id || !api_key) throw new Error('place_id and api_key required');
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(place_id)}&fields=rating,user_ratings_total,reviews&key=${encodeURIComponent(api_key)}`;
+  console.log('Fetching Google Places:', url.replace(/key=[^&]+/, 'key=REDACTED'));
+  const resp = await fetch(url);
+  const jr = await resp.json();
+  if (!jr || jr.status !== 'OK') {
+    throw new Error('Google Places error: ' + (jr && jr.status));
+  }
+  const result = jr.result || {};
+  const avg = result.rating || null;
+  const total = result.user_ratings_total || 0;
+  const rawReviews = result.reviews || [];
+  const reviews = rawReviews.slice(0, 50).map(r => ({ author: r.author_name, rating: r.rating, time: r.time, relative_time_description: r.relative_time_description || '', text: r.text }));
+  const now = new Date().toISOString();
+  return new Promise((resolve, reject) => {
+    db.run('INSERT INTO reviews_snapshots (provider, place_id, fetched_at, avg_rating, total_reviews, reviews_json) VALUES (?,?,?,?,?,?)', ['google', place_id, now, avg, total, JSON.stringify(reviews)], function(err){
+      if (err) return reject(err);
+      resolve({ id: this.lastID, fetched_at: now, avg_rating: avg, total_reviews: total, reviews });
+    });
+  });
+}
+
+// Trigger fetch: POST /api/reviews/fetch  { provider: 'google', place_id, api_key }
+app.post('/api/reviews/fetch', async (req, res) => {
+  const { provider, place_id, api_key } = req.body || {};
+  try {
+    if (provider !== 'google') return res.status(400).json({ error: 'only google provider supported' });
+    const key = api_key || process.env.REV_API_KEY;
+    if (!place_id || !key) return res.status(400).json({ error: 'place_id and api_key required' });
+    const out = await fetchAndStoreGoogleReviews(place_id, key);
+    res.json(out);
+  } catch (err) {
+    console.error('Error fetching reviews:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get latest snapshot: GET /api/reviews?provider=google&place_id=...
+app.get('/api/reviews', (req, res) => {
+  const provider = req.query.provider || 'google';
+  const place_id = req.query.place_id;
+  if (!place_id) return res.status(400).json({ error: 'place_id required' });
+  db.get('SELECT * FROM reviews_snapshots WHERE provider = ? AND place_id = ? ORDER BY fetched_at DESC LIMIT 1', [provider, place_id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.json({});
+    let reviews = [];
+    try { reviews = row.reviews_json ? JSON.parse(row.reviews_json) : []; } catch(e){ reviews = []; }
+    res.json({ id: row.id, provider: row.provider, place_id: row.place_id, fetched_at: row.fetched_at, avg_rating: row.avg_rating, total_reviews: row.total_reviews, reviews: reviews.slice(0,10) });
+  });
+});
+
+// Scheduled daily fetch if environment variables are provided
+if (process.env.REV_PROVIDER === 'google' && process.env.REV_PLACE_ID && process.env.REV_API_KEY) {
+  const place = process.env.REV_PLACE_ID;
+  const key = process.env.REV_API_KEY;
+  // initial fetch on startup
+  (async () => {
+    try { await fetchAndStoreGoogleReviews(place, key); console.log('Initial reviews fetch complete'); } catch(e) { console.warn('Initial reviews fetch failed', e.message); }
+  })();
+  // schedule every 24h
+  setInterval(async () => {
+    try { await fetchAndStoreGoogleReviews(place, key); console.log('Scheduled reviews fetch complete'); } catch(e) { console.warn('Scheduled reviews fetch failed', e.message); }
+  }, 24 * 60 * 60 * 1000);
+}
+
 // create product
 app.post('/api/products', (req,res) => {
   const { slug, title, description, price, img, category_slug, is_spicy, is_new, is_popular } = req.body;
@@ -642,8 +724,9 @@ app.post('/api/products', (req,res) => {
   const popular = is_popular ? 1 : 0;
   db.get('SELECT id FROM categories WHERE slug = ?', [category_slug], (err, cat) => {
     const category_id = cat ? cat.id : null;
-    const s = db.prepare('INSERT INTO products (slug, title, description, price, img, category_id, is_spicy, is_new, is_popular) VALUES (?,?,?,?,?,?,?,?,?)');
-    s.run(slug || title.toLowerCase().replace(/\s+/g,'-'), title, description, price, img, category_id, spicy, n, popular, function(err){
+    // ensure we do not store arbitrary free-form badge values; only admin flags are stored
+    const s = db.prepare('INSERT INTO products (slug, title, description, price, img, category_id, is_spicy, is_new, is_popular, badge) VALUES (?,?,?,?,?,?,?,?,?,?)');
+    s.run(slug || title.toLowerCase().replace(/\s+/g,'-'), title, description, price, img, category_id, spicy, n, popular, '', function(err){
       if (err) return res.status(500).json({error: err.message});
       res.json({id: this.lastID});
     });
@@ -660,7 +743,8 @@ app.put('/api/products/:id', (req,res) => {
   const popular = is_popular ? 1 : 0;
   db.get('SELECT id FROM categories WHERE slug = ?', [category_slug], (err, cat) => {
     const category_id = cat ? cat.id : null;
-    db.run('UPDATE products SET title=?, description=?, price=?, img=?, category_id=?, is_spicy=?, is_new=?, is_popular=? WHERE id=?', [title, description, price, img, category_id, spicy, n, popular, id], function(err){
+    // when updating, clear any free-form badge field and only persist admin flags
+    db.run('UPDATE products SET title=?, description=?, price=?, img=?, category_id=?, is_spicy=?, is_new=?, is_popular=?, badge=? WHERE id=?', [title, description, price, img, category_id, spicy, n, popular, '', id], function(err){
       if (err) return res.status(500).json({error: err.message});
       res.json({changes: this.changes});
     });

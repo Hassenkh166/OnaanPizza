@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadReviews();
 });
 
-// Avis exemple (à remplacer par une vraie API Google Maps avec clé API)
+// Avis exemple (fallback si l'API n'est pas accessible)
 const mockReviews = [
   {
     author: "Sophie Martin",
@@ -53,26 +53,58 @@ function loadReviews() {
   const container = document.getElementById('reviewsCarouselInner');
   if (!container) return;
 
-  // Grouper les avis par slides (3 avis par slide sur desktop, 1 sur mobile)
-  const reviewsPerSlide = window.innerWidth >= 992 ? 3 : 1;
-  const slides = [];
-  
-  for (let i = 0; i < mockReviews.length; i += reviewsPerSlide) {
-    slides.push(mockReviews.slice(i, i + reviewsPerSlide));
-  }
+  // Attempt to fetch latest snapshot from server; fall back to mocks on error
+  (async () => {
+    let reviewsSource = mockReviews;
+    try {
+      const resp = await fetch('/api/reviews?provider=google&place_id=ChIJa6txmmEnVQ0RZxi6aogq6fw');
+      if (resp.ok) {
+        const data = await resp.json();
+        // if endpoint returns wrapper with reviews, use it
+        if (data && Array.isArray(data.reviews) && data.reviews.length) {
+          // map Google-like reviews to the shape used by the renderer
+          reviewsSource = data.reviews.map(r => ({
+            author: r.author || r.author_name || 'Utilisateur',
+            rating: r.rating || 0,
+            date: r.relative_time_description || (r.time ? new Date(r.time*1000).toLocaleDateString() : ''),
+            text: r.text || r.content || ''
+          }));
+          // expose average/total if elements exist
+          const avgEl = document.getElementById('reviewsAvg');
+          const totEl = document.getElementById('reviewsTotal');
+          if (avgEl && typeof data.avg_rating !== 'undefined') {
+            const n = Number(data.avg_rating);
+            avgEl.textContent = Number.isFinite(n) ? n.toFixed(1) : data.avg_rating;
+          }
+          if (totEl && typeof data.total_reviews !== 'undefined') {
+            totEl.textContent = String(data.total_reviews);
+          }
+        }
+      }
+    } catch (e) {
+      // ignore — we'll use mockReviews
+      console.warn('Failed to fetch reviews snapshot, using mocks', e);
+    }
 
-  container.innerHTML = slides.map((slideReviews, slideIndex) => {
-    const isActive = slideIndex === 0 ? ' active' : '';
-    const reviewsHTML = slideReviews.map(review => createReviewCard(review)).join('');
-    
-    return `
+    // Grouper les avis par slides (3 avis par slide sur desktop, 1 sur mobile)
+    const reviewsPerSlide = window.innerWidth >= 992 ? 3 : 1;
+    const slides = [];
+    for (let i = 0; i < reviewsSource.length; i += reviewsPerSlide) {
+      slides.push(reviewsSource.slice(i, i + reviewsPerSlide));
+    }
+
+    container.innerHTML = slides.map((slideReviews, slideIndex) => {
+      const isActive = slideIndex === 0 ? ' active' : '';
+      const reviewsHTML = slideReviews.map(review => createReviewCard(review)).join('');
+      return `
       <div class="carousel-item${isActive}">
         <div class="row g-4 justify-content-center">
           ${reviewsHTML}
         </div>
       </div>
     `;
-  }).join('');
+    }).join('');
+  })();
 }
 
 function createReviewCard(review) {

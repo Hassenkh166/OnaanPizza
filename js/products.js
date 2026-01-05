@@ -141,13 +141,19 @@ function createProductCard(product, index) {
   if (product.is_popular == 1 || product.is_popular === true) badges.push({ text: 'Populaire', class: 'badge-popular', icon: '🔥' });
   if (product.is_spicy == 1 || product.is_spicy === true) badges.push({ text: 'Épicé', class: 'badge-spicy', icon: '🌶️' });
   
+  // For sandwich category always show the three bread options
   let breadTypes = [];
-  try {
-    if (product.bread_types && product.bread_types !== 'null') {
-      breadTypes = JSON.parse(product.bread_types);
+  const isSandwich = product.category_slug === 'sandwichs' || product.category_slug === 'sandwich';
+  if (isSandwich) {
+    breadTypes = ['pain','galette','naan'];
+  } else {
+    try {
+      if (product.bread_types && product.bread_types !== 'null') {
+        breadTypes = JSON.parse(product.bread_types);
+      }
+    } catch(e) {
+      console.warn('Error parsing bread_types:', e);
     }
-  } catch(e) {
-    console.warn('Error parsing bread_types:', e);
   }
   const hasBreadOptions = breadTypes.length > 0;
   
@@ -172,10 +178,7 @@ function createProductCard(product, index) {
             </div>
           ` : ''}
           
-          <!-- Custom badge from product -->
-          ${product.badge ? `
-            <div class="product-badge-custom">${product.badge}</div>
-          ` : ''}
+          <!-- Note: custom free-form badges are intentionally not displayed; only admin flags control badges -->
           
           <!-- Overlay with quick view -->
           <div class="product-overlay">
@@ -192,7 +195,7 @@ function createProductCard(product, index) {
             <div class="bread-tags">
               ${breadTypes.map(type => {
                 const icons = { pain: '🥖', galette: '🌯', naan: '🫓' };
-                const labels = { pain: 'Pain', galette: 'Galette', naan: 'Naan' };
+                const labels = { pain: 'Pain maison', galette: 'Galette', naan: 'Naan' };
                 return `<span class="bread-tag">${icons[type] || '🍞'} ${labels[type] || type}</span>`;
               }).join('')}
             </div>
