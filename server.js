@@ -3,13 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const logger = require('./utils/logger');
+const fs = require('fs');
 
 // Flag: are we using Postgres?
 const USING_PG = !!process.env.DATABASE_URL;
-
-// Migrations pour ajouter les nouvelles colonnes (SQLite-only)
-if (!USING_PG) {
-  db.serialize(() => {
 
 const DB_FILE = path.join(__dirname, 'data.db');
 const PORT = process.env.PORT || 3000;
@@ -110,8 +107,6 @@ if (process.env.DATABASE_URL) {
     }
   });
 }
-  }
-});
 
 // Migrations pour ajouter les nouvelles colonnes
 db.serialize(() => {
@@ -162,8 +157,7 @@ db.serialize(() => {
     }
   });
 });
-}
-
+ 
 // In SQLite we create lightweight tables if missing. For Postgres, migrations should be applied separately.
 if (!USING_PG) {
   // ensure daily_specials table exists
@@ -300,7 +294,7 @@ if (!USING_PG) {
     }
   });
 });
-
+}
 // lightweight migration: if configuration is empty but hero_images table exists, migrate hero images into configuration
 db.serialize(() => {
   db.get("SELECT COUNT(*) as c FROM configuration", (err, row) => {
