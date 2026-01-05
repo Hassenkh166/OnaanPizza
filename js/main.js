@@ -132,7 +132,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const menuItems = document.querySelectorAll('.radial-menu-wrapper .menu-item');
 
   if (menuToggle && overlay && menuItems.length) {
-    const radius = 120;
+    // radius controls how far menu items sit from the central button
+    const radius = 180;
     const startAngle = 180; // start downward then sweep toward left (bottom-left quadrant)
     const arcAngle = 90;    // quarter-circle spread
     const angleIncrement = menuItems.length > 1 ? arcAngle / (menuItems.length - 1) : 0;

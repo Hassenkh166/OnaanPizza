@@ -635,12 +635,15 @@ app.delete('/api/promotions/:id', (req, res) => {
 
 // create product
 app.post('/api/products', (req,res) => {
-  const { slug, title, description, price, img, category_slug } = req.body;
-  if (!title) return res.status(400).json({error: 'title required'});
+  const { slug, title, description, price, img, category_slug, is_spicy, is_new, is_popular } = req.body;
+  if (!title || !price || !description || !img) return res.status(400).json({error: 'title, price, description and img required'});
+  const spicy = is_spicy ? 1 : 0;
+  const n = is_new ? 1 : 0;
+  const popular = is_popular ? 1 : 0;
   db.get('SELECT id FROM categories WHERE slug = ?', [category_slug], (err, cat) => {
     const category_id = cat ? cat.id : null;
-    const s = db.prepare('INSERT INTO products (slug, title, description, price, img, category_id) VALUES (?,?,?,?,?,?)');
-    s.run(slug || title.toLowerCase().replace(/\s+/g,'-'), title, description, price, img, category_id, function(err){
+    const s = db.prepare('INSERT INTO products (slug, title, description, price, img, category_id, is_spicy, is_new, is_popular) VALUES (?,?,?,?,?,?,?,?,?)');
+    s.run(slug || title.toLowerCase().replace(/\s+/g,'-'), title, description, price, img, category_id, spicy, n, popular, function(err){
       if (err) return res.status(500).json({error: err.message});
       res.json({id: this.lastID});
     });
@@ -650,10 +653,14 @@ app.post('/api/products', (req,res) => {
 // update product
 app.put('/api/products/:id', (req,res) => {
   const id = req.params.id;
-  const { title, description, price, img, category_slug } = req.body;
+  const { title, description, price, img, category_slug, is_spicy, is_new, is_popular } = req.body;
+  if (!title || !price || !description || !img) return res.status(400).json({error: 'title, price, description and img required'});
+  const spicy = is_spicy ? 1 : 0;
+  const n = is_new ? 1 : 0;
+  const popular = is_popular ? 1 : 0;
   db.get('SELECT id FROM categories WHERE slug = ?', [category_slug], (err, cat) => {
     const category_id = cat ? cat.id : null;
-    db.run('UPDATE products SET title=?, description=?, price=?, img=?, category_id=? WHERE id=?', [title, description, price, img, category_id, id], function(err){
+    db.run('UPDATE products SET title=?, description=?, price=?, img=?, category_id=?, is_spicy=?, is_new=?, is_popular=? WHERE id=?', [title, description, price, img, category_id, spicy, n, popular, id], function(err){
       if (err) return res.status(500).json({error: err.message});
       res.json({changes: this.changes});
     });

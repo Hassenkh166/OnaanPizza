@@ -133,6 +133,18 @@ async function loadCategories() {
     preview.innerHTML = '';
     if (fileInput) { fileInput.value = ''; }
     currentImageUrl = '';
+    // reset IconButtons to outlined (non-active) state
+    document.querySelectorAll('.product-icon-button').forEach(btn => {
+      const flag = btn.dataset.flag;
+      const map = { spicy: 'danger', new: 'success', popular: 'warning' };
+      const outline = `btn-outline-${map[flag] || 'secondary'}`;
+      const filled = `btn-${map[flag] || 'secondary'}`;
+      btn.classList.remove('active');
+      btn.classList.remove(filled);
+      // remove other possible btn-* classes to ensure consistent state
+      btn.classList.remove('btn-secondary','btn-danger','btn-success','btn-warning');
+      if (!btn.classList.contains(outline)) btn.classList.add(outline);
+    });
   }
   
    addCatBtn.addEventListener('click', async function(e){
@@ -199,6 +211,34 @@ async function loadCategories() {
     // only upload option is supported for custom icons (file input visible)
   }
 
+  // IconButtons toggle logic: simple outline <-> filled swap
+  (function(){
+    const map = { spicy: 'danger', new: 'success', popular: 'warning' };
+    function toOutlineClass(flag){ return `btn-outline-${map[flag] || 'secondary'}`; }
+    function toFilledClass(flag){ return `btn-${map[flag] || 'secondary'}`; }
+    document.querySelectorAll('.product-icon-button').forEach(btn => {
+      // ensure initial outline state
+      const flag = btn.dataset.flag;
+      btn.classList.remove('btn-secondary','btn-danger','btn-success','btn-warning');
+      if (!btn.classList.contains(toOutlineClass(flag)) && !btn.classList.contains(toFilledClass(flag))) btn.classList.add(toOutlineClass(flag));
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('active')){
+          btn.classList.remove('active');
+          btn.classList.remove(toFilledClass(flag));
+          btn.classList.add(toOutlineClass(flag));
+        } else {
+          btn.classList.add('active');
+          btn.classList.remove(toOutlineClass(flag));
+          btn.classList.add(toFilledClass(flag));
+        }
+      });
+    });
+    // reset handler to restore outlines
+    const origReset = window.resetForm || null;
+    // override resetForm's inner behavior by patching existing function reference
+    // (we'll just augment below where resetForm is defined)
+  })();
+
 
   form.addEventListener('submit', async function(e){
     e.preventDefault();
@@ -214,7 +254,32 @@ async function loadCategories() {
         const jr = await r.json();
         imageUrl = jr.url;
       }
-      const payload = { title: titleInput.value.trim() || 'Sans titre', price: priceInput.value.trim() || '', img: imageUrl || '/assets/images/restaurant.jpg', description: descInput.value.trim(), category_slug: categorySelect.value };
+      // determine final image (either newly uploaded or existing when editing)
+      const finalImage = imageUrl || currentImageUrl || '';
+      // collect simple badge flags from IconButtons (active = filled)
+      const getFlag = (flag) => {
+        const b = document.querySelector(`.product-icon-button[data-flag="${flag}"]`);
+        return b && b.classList.contains('active') ? 1 : 0;
+      };
+      // validate required fields: title, price, description, image
+      const titleVal = titleInput.value.trim();
+      const priceVal = priceInput.value.trim();
+      const descVal = descInput.value.trim();
+      if (!titleVal || !priceVal || !descVal || !finalImage) {
+        showToast('Veuillez renseigner le titre, le prix, la description et une image.', 'danger');
+        saveBtn.disabled = false;
+        return;
+      }
+      const payload = { 
+        title: titleVal, 
+        price: priceVal, 
+        img: finalImage, 
+        description: descVal, 
+        category_slug: categorySelect.value,
+        is_spicy: getFlag('spicy'),
+        is_new: getFlag('new'),
+        is_popular: getFlag('popular')
+      };
       let res;
       if (idVal) res = await fetch(`/api/products/${idVal}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       else res = await fetch('/api/products', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
@@ -280,6 +345,12 @@ async function loadCategories() {
             categoryIconPreviewWrap.classList.add('d-none');
           }
           addCatBtn.textContent = 'Enregistrer';
+          // scroll the category form into view and focus the input so the admin doesn't have to scroll manually
+          try {
+            const catForm = document.getElementById('categoryForm');
+            if (catForm && typeof catForm.scrollIntoView === 'function') catForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (newCategory && typeof newCategory.focus === 'function') newCategory.focus();
+          } catch(e) { /* ignore scroll errors */ }
         } catch(err) { console.error(err); showToast('Erreur chargement catégorie', 'danger'); }
       }
     });

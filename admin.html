@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/admin-styles.css">
   </head>
-  <body>
+  <body class="admin-body">
     <!-- Mobile Hamburger Button -->
     <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle menu">
       <span></span>
@@ -66,7 +66,7 @@
       </div>
 
     <div class="container-fluid admin-panel">
-      <div class="card glass-card mb-4">
+      <div class=" mb-4 ">
 
      <div class="card mb-4">
          <div class="card-body">
@@ -101,7 +101,7 @@
       </div>
 
 
-      <div class="card glass-card mb-4">
+      <div class="card mb-4">
         <div class="card-body">
           <form id="productForm">
             <input type="hidden" id="productId">
@@ -125,6 +125,14 @@
               </div>
               <div class="col-12 mt-2">
                 <textarea id="productDesc" rows="2" class="form-control" placeholder="Description"></textarea>
+              </div>
+              <div class="col-12 mt-2">
+                <label class="form-label">IconButtons</label>
+                <div id="iconButtons" class="d-flex gap-2">
+                  <button type="button" class="btn btn-outline-danger product-icon-button" data-flag="spicy">🌶️ Épicé</button>
+                  <button type="button" class="btn btn-outline-success product-icon-button" data-flag="new">✨ Nouveau</button>
+                  <button type="button" class="btn btn-outline-warning product-icon-button" data-flag="popular">🔥 Populaire</button>
+                </div>
               </div>
             </div>
             <div class="mt-3 d-flex gap-2">
