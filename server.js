@@ -5,6 +5,11 @@ const multer = require('multer');
 const logger = require('./utils/logger');
 const fs = require('fs');
 
+// initialize Express app and common middleware
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 // Flag: are we using Postgres?
 const USING_PG = !!process.env.DATABASE_URL;
 
