@@ -27,20 +27,30 @@ let db;
 if (process.env.DATABASE_URL) {
   const { Pool } = require('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  // helper to convert SQLite-style '?' placeholders to Postgres $1, $2...
+  function pgify(sql, params) {
+    if (!sql || !sql.includes('?')) return { sql, params };
+    let i = 0;
+    const newSql = sql.replace(/\?/g, () => '$' + (++i));
+    return { sql: newSql, params: params || [] };
+  }
 
   db = {
     serialize: (fn) => { try { fn(); } catch(e) { console.warn('serialize error', e); } },
     run: (sql, params, cb) => {
       if (typeof params === 'function') { cb = params; params = []; }
-      pool.query(sql, params || []).then(res => { if (cb) cb && cb(null, { changes: res.rowCount, lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval) }); }).catch(err => cb && cb(err));
+      const q = pgify(sql, params || []);
+      pool.query(q.sql, q.params).then(res => { if (cb) cb && cb(null, { changes: res.rowCount, lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval) }); }).catch(err => cb && cb(err));
     },
     get: (sql, params, cb) => {
       if (typeof params === 'function') { cb = params; params = []; }
-      pool.query(sql, params || []).then(res => cb && cb(null, (res.rows && res.rows[0]) || null)).catch(err => cb && cb(err));
+      const q = pgify(sql, params || []);
+      pool.query(q.sql, q.params).then(res => cb && cb(null, (res.rows && res.rows[0]) || null)).catch(err => cb && cb(err));
     },
     all: (sql, params, cb) => {
       if (typeof params === 'function') { cb = params; params = []; }
-      pool.query(sql, params || []).then(res => cb && cb(null, res.rows || [])).catch(err => cb && cb(err));
+      const q = pgify(sql, params || []);
+      pool.query(q.sql, q.params).then(res => cb && cb(null, res.rows || [])).catch(err => cb && cb(err));
     },
     prepare: (sql) => {
       return {
@@ -48,7 +58,8 @@ if (process.env.DATABASE_URL) {
           const args = Array.from(arguments);
           const cb = (typeof args[args.length-1] === 'function') ? args.pop() : null;
           const params = args;
-          pool.query(sql, params).then(res => cb && cb(null, { lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval), changes: res.rowCount })).catch(err => cb && cb(err));
+          const q = pgify(sql, params || []);
+          pool.query(q.sql, q.params).then(res => cb && cb(null, { lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval), changes: res.rowCount })).catch(err => cb && cb(err));
         },
         finalize: function() { /* no-op */ }
       };
