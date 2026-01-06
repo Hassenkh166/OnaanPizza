@@ -145,6 +145,14 @@ p, .lead {
   transform: scale(0.95) rotate(3deg);
 }
 
+/* Nudge the navbar logo slightly up and to the left without affecting other logo usages */
+.logo-container .logo-img, .navbar .logo-img {
+  /* reduce left margin and lift a few pixels */
+  margin-left: 36px !important;
+  margin-top: -8px !important;
+  position: relative;
+}
+
 
 /* CTA */
 .btn-cta{
@@ -2178,8 +2186,8 @@ main {
   position: fixed;
   top: 24px;
   right: 24px;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   z-index: 1100;
 }
 
@@ -2221,8 +2229,8 @@ main {
   position: absolute;
   top: 0;
   left: 0;
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   background-color: #ffffff;
   color: var(--primary-color);
   border-radius: 50%;
@@ -2236,6 +2244,8 @@ main {
   opacity: 0;
   pointer-events: none;
 }
+
+.menu-toggle i { font-size: 16px; }
 
 .menu-item:hover {
   background-color: var(--primary-color);
