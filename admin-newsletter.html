@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin — Newsletter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/admin-styles.css">
+  </head>
+  <body class="admin-body">
+    <!-- include same sidebar as admin.html (simple copy) -->
+    <aside class="admin-sidebar">
+      <div class="admin-logo">
+        <h3>O'naan Pizza</h3>
+        <p>Administration</p>
+      </div>
+      <ul class="admin-nav">
+        <li class="admin-nav-item"><a href="admin.html" class="admin-nav-link"><i class="fas fa-pizza-slice"></i><span>Produits</span></a></li>
+        <li class="admin-nav-item"><a href="daily-specials.html" class="admin-nav-link"><i class="fas fa-star"></i><span>Promotions</span></a></li>
+        <li class="admin-nav-item"><a href="site-config.html" class="admin-nav-link"><i class="fas fa-cog"></i><span>Configuration</span></a></li>
+        <li class="admin-nav-item"><a href="index.html" target="_blank" class="admin-nav-link"><i class="fas fa-external-link-alt"></i><span>Voir le site</span></a></li>
+        <li class="admin-nav-item"><a href="admin-newsletter.html" class="admin-nav-link active"><i class="fas fa-envelope"></i><span>Newsletter</span></a></li>
+      </ul>
+    </aside>
+
+    <main class="admin-main container-fluid">
+      <div class="admin-header mb-3">
+        <h1><i class="fas fa-envelope me-2" style="color: #f6c04d"></i>Newsletter — Abonnés</h1>
+        <p>Liste des abonnés et actions (aperçu, export, suppression)</p>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2 align-items-center">
+              <select id="sendScope" class="form-select" style="width:160px;">
+                <option value="selected">Sélectionnés</option>
+                <option value="all">Tous</option>
+              </select>
+              <button id="sendGmail" class="btn btn-outline-success">Envoyer via Gmail</button>
+              <button id="exportCsv" class="btn btn-outline-secondary">Exporter CSV</button>
+            </div>
+            <div>
+              <input id="searchEmail" class="form-control" placeholder="Rechercher par email" style="min-width:260px" />
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-striped" id="subscribersTable">
+              <thead>
+                <tr><th>Email</th><th>Date</th><th>Actions</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <nav aria-label="Pagination" id="nsPagination" class="mt-2"></nav>
+        </div>
+      </div>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script src="js/admin-newsletter.js"></script>
+  </body>
+</html>

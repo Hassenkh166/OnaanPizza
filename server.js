@@ -520,6 +520,58 @@ app.delete('/api/promotions/:id', async (req,res) => {
   } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
+// Newsletter signup: save client email to `clients` table
+app.post('/api/newsletter', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'invalid email' });
+    }
+
+    // check existing
+    const { data: existing, error: exErr } = await supabase.from('clients').select('id,email').eq('email', email).limit(1).maybeSingle();
+    if (exErr) throw exErr;
+    if (existing && existing.id) {
+      return res.json({ id: existing.id, message: 'already_subscribed' });
+    }
+
+    const now = new Date().toISOString();
+    const { data, error } = await supabase.from('clients').insert({ email, date: now }).select().limit(1).single();
+    if (error) throw error;
+    return res.json({ id: data.id, message: 'subscribed' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message || 'Supabase error' });
+  }
+});
+
+// Admin: list newsletter subscribers
+app.get('/api/newsletter', async (req, res) => {
+  try {
+    // TODO: add admin auth check if available
+    const { data, error } = await supabase.from('clients').select('id,email,date').order('date', { ascending: false }).limit(1000);
+    if (error) throw error;
+    return res.json({ data: data || [] });
+  } catch (e) {
+    console.error('GET /api/newsletter error', e);
+    return res.status(500).json({ error: e.message || 'Supabase error' });
+  }
+});
+
+// Admin: delete subscriber by id
+app.delete('/api/newsletter/:id', async (req, res) => {
+  try {
+    // TODO: add admin auth check
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ deleted: 1 });
+  } catch (e) {
+    console.error('DELETE /api/newsletter/:id error', e);
+    return res.status(500).json({ error: e.message || 'Supabase error' });
+  }
+});
+
 // Reviews fetch/store
 async function fetchAndStoreGoogleReviews(place_id, api_key, language = 'fr') {
   if (!place_id || !api_key) throw new Error('place_id and api_key required');
