@@ -1,3 +1,130 @@
+/* Newsletter actions container */
+.newsletter-actions {
+  background: linear-gradient(90deg, #fffbe7 0%, #fff 100%);
+  border-radius: 1.1em;
+  padding: 1.2em 1em 1em 1em;
+  box-shadow: 0 2px 12px 0 rgba(246,192,77,0.07);
+  margin-bottom: 1.5em;
+}
+.newsletter-actions .form-select {
+  min-width: 140px;
+}
+.newsletter-actions .btn {
+  min-width: 120px;
+  font-size: 1.08em;
+  font-weight: 500;
+}
+.newsletter-actions .btn-success {
+  background: #f6c04d;
+  border-color: #f6c04d;
+  color: #fff;
+}
+.newsletter-actions .btn-success:hover {
+  background: #e6b000;
+  border-color: #e6b000;
+  color: #fff;
+}
+.newsletter-actions .form-control {
+  font-size: 1.05em;
+  border-radius: 2em;
+}
+/* Liste verticale newsletter */
+.newsletter-list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-top: 0.5rem;
+}
+.newsletter-card {
+  border-radius: 1.2rem;
+  background: #fff;
+  box-shadow: 0 2px 16px 0 rgba(246,192,77,0.08), 0 0.5px 2px 0 rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.newsletter-card:hover {
+  box-shadow: 0 0 0 2px #f6c04d, 0 8px 32px rgba(0,0,0,0.10);
+  transform: translateY(-2px) scale(1.01);
+}
+.newsletter-card .form-check-input {
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 0.4em;
+  border: 2px solid #f6c04d;
+  box-shadow: none;
+  margin-right: 0.7em;
+}
+.newsletter-card .form-check-input:checked {
+  background-color: #f6c04d;
+  border-color: #f6c04d;
+}
+.newsletter-card .btn-danger {
+  border-radius: 2em;
+  font-size: 1.1em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px 0 rgba(246,192,77,0.08);
+  transition: background 0.15s, color 0.15s;
+}
+.newsletter-card .btn-danger:hover {
+  background: #f6c04d;
+  color: #fff;
+  border-color: #f6c04d;
+}
+.newsletter-card .fw-bold {
+  font-size: 1.08em;
+}
+/* Newsletter cards grid and style */
+.newsletter-card-grid {
+  margin-top: 0.5rem;
+}
+.newsletter-card {
+  border-radius: 1.2rem;
+  background: #fff;
+  box-shadow: 0 2px 16px 0 rgba(246,192,77,0.08), 0 0.5px 2px 0 rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.newsletter-card:hover {
+  box-shadow: 0 0 0 2px #f6c04d, 0 8px 32px rgba(0,0,0,0.10);
+  transform: translateY(-2px) scale(1.01);
+}
+.newsletter-card .form-check-input {
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 0.4em;
+  border: 2px solid #f6c04d;
+  box-shadow: none;
+  margin-right: 0.7em;
+}
+.newsletter-card .form-check-input:checked {
+  background-color: #f6c04d;
+  border-color: #f6c04d;
+}
+.newsletter-card .btn-danger {
+  border-radius: 2em;
+  font-size: 1.1em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px 0 rgba(246,192,77,0.08);
+  transition: background 0.15s, color 0.15s;
+}
+.newsletter-card .btn-danger:hover {
+  background: #f6c04d;
+  color: #fff;
+  border-color: #f6c04d;
+}
+.newsletter-card .fw-bold {
+  font-size: 1.08em;
+}
 /* ===================================
    ADMIN PANEL MODERN STYLES
    =================================== */

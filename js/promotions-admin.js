@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       listEl.innerHTML = promos.map(p => `
-        <div class="list-group-item d-flex align-items-center justify-content-between" data-id="${p.id}">
+        <div class="list-group-item" data-id="${p.id}">
           <div class="d-flex align-items-center gap-3">
             <img src="${p.image_url || '/assets/images/restaurant.jpg'}" class="promo-thumb" alt="promo">
             <div>
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
               ${p.badge_text ? `<span class="badge bg-danger mt-1">${p.badge_text}</span>` : ''}
             </div>
           </div>
-          <div class="btn-group">
+          <div class="btn-group mt-3 w-100 d-flex justify-content-center">
             <button class="btn btn-sm btn-outline-secondary edit-promo">Éditer</button>
             <button class="btn btn-sm btn-danger delete-promo">Supprimer</button>
           </div>

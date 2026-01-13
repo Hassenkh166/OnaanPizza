@@ -27,20 +27,32 @@ document.addEventListener('DOMContentLoaded', () => {
       tableBody.innerHTML = '<tr><td colspan="3">Aucun abonné</td></tr>';
       return;
     }
-    list.forEach(r => {
-      const tr = document.createElement('tr');
-      const d = new Date(r.date || r.created_at || r.createdAt || null);
-      const dateText = isNaN(d.getTime()) ? (r.date || r.created_at || '') : d.toLocaleString();
-      tr.innerHTML = `
-        <td><input type="checkbox" class="ns-checkbox" data-id="${r.id}" data-email="${escapeHtml(r.email||'')}"></td>
-        <td>${escapeHtml(r.email || '')}</td>
-        <td>${dateText}</td>
-        <td>
-          <button class="btn btn-sm btn-outline-danger" data-id="${r.id}" data-action="delete">Supprimer</button>
-        </td>
-      `;
-      tableBody.appendChild(tr);
-    });
+    // Liste verticale de cards empilées
+    const cardRow = document.createElement('tr');
+    const cardCell = document.createElement('td');
+    cardCell.colSpan = 3;
+    cardCell.innerHTML = `
+      <div class="newsletter-list-stack">
+        ${list.map(r => {
+          const d = new Date(r.date || r.created_at || r.createdAt || null);
+          const dateText = isNaN(d.getTime()) ? (r.date || r.created_at || '') : d.toLocaleString();
+          return `
+            <div class="card newsletter-card mb-3 p-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+              <div class="d-flex align-items-center mb-2 mb-md-0">
+                <input class="form-check-input ns-checkbox me-3" type="checkbox" data-id="${r.id}" data-email="${escapeHtml(r.email||'')}">
+                <span class="fw-bold text-break" style="word-break:break-all;">${escapeHtml(r.email || '')}</span>
+              </div>
+              <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+                <span class="text-muted small">${dateText}</span>
+                <button class="btn btn-lg btn-danger px-4 py-2" data-id="${r.id}" data-action="delete">Supprimer</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    cardRow.appendChild(cardCell);
+    tableBody.appendChild(cardRow);
     // ensure select-all header checkbox wired (if present)
     const selectAll = document.getElementById('selectAll');
     if (selectAll) {

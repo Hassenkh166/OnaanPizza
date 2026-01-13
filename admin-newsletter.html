@@ -11,18 +11,51 @@
     <link rel="stylesheet" href="css/admin-styles.css">
   </head>
   <body class="admin-body">
-    <!-- include same sidebar as admin.html (simple copy) -->
-    <aside class="admin-sidebar">
+    <!-- Mobile Hamburger Button -->
+    <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle menu">
+      <span></span>
+    </button>
+    <!-- Mobile Overlay -->
+    <div class="admin-overlay" id="adminOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
       <div class="admin-logo">
         <h3>O'naan Pizza</h3>
         <p>Administration</p>
       </div>
       <ul class="admin-nav">
-        <li class="admin-nav-item"><a href="admin.html" class="admin-nav-link"><i class="fas fa-pizza-slice"></i><span>Produits</span></a></li>
-        <li class="admin-nav-item"><a href="daily-specials.html" class="admin-nav-link"><i class="fas fa-star"></i><span>Promotions</span></a></li>
-        <li class="admin-nav-item"><a href="site-config.html" class="admin-nav-link"><i class="fas fa-cog"></i><span>Configuration</span></a></li>
-        <li class="admin-nav-item"><a href="index.html" target="_blank" class="admin-nav-link"><i class="fas fa-external-link-alt"></i><span>Voir le site</span></a></li>
-        <li class="admin-nav-item"><a href="admin-newsletter.html" class="admin-nav-link active"><i class="fas fa-envelope"></i><span>Newsletter</span></a></li>
+        <li class="admin-nav-item">
+          <a href="admin.html" class="admin-nav-link">
+            <i class="fas fa-pizza-slice"></i>
+            <span>Produits</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a href="daily-specials.html" class="admin-nav-link">
+            <i class="fas fa-star"></i>
+            <span>Promotions</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a href="site-config.html" class="admin-nav-link">
+            <i class="fas fa-cog"></i>
+            <span>Configuration</span>
+          </a>
+        </li>
+         <li class="admin-nav-item">
+          <a href="admin-newsletter.html" class="admin-nav-link active">
+            <i class="fas fa-envelope"></i>
+            <span>Newsletter</span>
+          </a>
+        </li>
+        <li class="admin-nav-item admin-nav-sep">
+          <a href="index.html" target="_blank" class="admin-nav-link">
+            <i class="fas fa-external-link-alt"></i>
+            <span>Voir le site</span>
+          </a>
+        </li>
+       
       </ul>
     </aside>
 
@@ -34,17 +67,19 @@
 
       <div class="card">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex gap-2 align-items-center">
-              <select id="sendScope" class="form-select" style="width:160px;">
-                <option value="selected">Sélectionnés</option>
-                <option value="all">Tous</option>
-              </select>
-              <button id="sendGmail" class="btn btn-outline-success">Envoyer via Gmail</button>
-              <button id="exportCsv" class="btn btn-outline-secondary">Exporter CSV</button>
-            </div>
-            <div>
-              <input id="searchEmail" class="form-control" placeholder="Rechercher par email" style="min-width:260px" />
+          <div class="newsletter-actions mb-4">
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-md-auto d-flex flex-wrap gap-2 mb-2 mb-md-0">
+                <select id="sendScope" class="form-select" style="width:160px;max-width:100%;">
+                  <option value="selected">Sélectionnés</option>
+                  <option value="all">Tous</option>
+                </select>
+                <button id="sendGmail" class="btn btn-success px-4">Envoyer via Gmail</button>
+                <button id="exportCsv" class="btn btn-outline-secondary px-4">Exporter CSV</button>
+              </div>
+              <div class="col-12 col-md">
+                <input id="searchEmail" class="form-control" placeholder="Rechercher par email" style="min-width:180px;max-width:340px;" />
+              </div>
             </div>
           </div>
 
@@ -64,7 +99,7 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/admin-sidebar.js"></script>
+    <script src="js/admin-responsive.js"></script>
     <script src="js/admin-newsletter.js"></script>
   </body>
 </html>
