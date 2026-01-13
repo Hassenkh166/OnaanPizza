@@ -1,5 +1,138 @@
 // Smooth scroll for anchor links and navbar behavior
 document.addEventListener('DOMContentLoaded', function() {
+  // Pre-insert spinners so a loader is visible immediately while config loads
+  function ensureInitialLogoSpinners() {
+    const all = document.querySelectorAll('.restaurant-logo, .hero-logo');
+    all.forEach(el => {
+      if (!el) return;
+      // avoid duplicating
+      const existing = el.parentNode && el.parentNode.querySelector('.logo-spinner');
+      if (existing) return;
+      // create spinner and insert after element
+      const spinner = document.createElement('span');
+      spinner.className = 'logo-spinner';
+      el.classList.add('hidden');
+      el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+    });
+  }
+  ensureInitialLogoSpinners();
+
+  /* Newsletter modal: inject enhanced Centre Glass modal with accessibility */
+  let _newsletterPreviouslyFocused = null;
+  let _newsletterKeyHandler = null;
+
+  function createNewsletterModal() {
+    if (document.getElementById('newsletterModal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'newsletterModal';
+    modal.innerHTML = `
+      <div class="ns-overlay" data-dismiss="overlay"></div>
+      <div class="ns-card" role="dialog" aria-modal="true" aria-labelledby="ns-title" tabindex="-1">
+        <button class="ns-close" aria-label="Fermer">×</button>
+        <h3 id="ns-title">Recevez nos promotions</h3>
+        <p>Inscrivez votre email pour recevoir nos offres et promotions intéressantes.</p>
+        <form id="newsletterForm">
+          <input id="newsletterEmail" type="email" placeholder="votre@email.com" required aria-label="Email" />
+          <div class="ns-actions">
+            <button type="submit" class="ns-cta">S'inscrire</button>
+            <button type="button" id="newsletterNo" class="ns-secondary">Non merci</button>
+          </div>
+          <div id="newsletterMsg" aria-live="polite"></div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // close handlers
+    modal.querySelector('.ns-close').addEventListener('click', () => { hideNewsletterModal(true); });
+    modal.querySelector('#newsletterNo').addEventListener('click', () => { hideNewsletterModal(true); });
+    modal.querySelector('.ns-overlay').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) hideNewsletterModal(true); });
+
+    const form = modal.querySelector('#newsletterForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('newsletterEmail').value.trim();
+      const msgEl = document.getElementById('newsletterMsg');
+      msgEl.textContent = '';
+      if (!email) { msgEl.textContent = 'Veuillez saisir un email valide.'; return; }
+      try {
+        const btn = form.querySelector('button[type=submit]');
+        btn.disabled = true; btn.textContent = 'Enregistrement...';
+        const resp = await fetch('/api/newsletter', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+        let jr = {};
+        try { jr = await resp.json(); } catch(e){}
+        if (resp.ok) {
+          msgEl.textContent = "Merci — vous êtes inscrit(e).";
+          localStorage.setItem('newsletterSubscribed', '1');
+          setTimeout(() => hideNewsletterModal(true), 900);
+        } else {
+          msgEl.textContent = jr && jr.error ? jr.error : 'Erreur lors de l\'inscription';
+        }
+      } catch (err) {
+        document.getElementById('newsletterMsg').textContent = 'Échec réseau';
+      } finally {
+        const btn = form.querySelector('button[type=submit]'); if (btn) { btn.disabled = false; btn.textContent = "S'inscrire"; }
+      }
+    });
+  }
+
+  function _newsletterKeydownHandler(e) {
+    const modal = document.getElementById('newsletterModal');
+    if (!modal) return;
+    const card = modal.querySelector('.ns-card');
+    if (!card) return;
+    if (e.key === 'Escape') {
+      e.preventDefault(); hideNewsletterModal(true);
+      return;
+    }
+    if (e.key === 'Tab') {
+      // simple focus trap
+      const focusable = card.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])');
+      if (!focusable || !focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+  }
+
+  function showNewsletterModal() {
+    if (localStorage.getItem('newsletterSubscribed') === '1' || localStorage.getItem('newsletterDismissed') === '1') return;
+    createNewsletterModal();
+    const modal = document.getElementById('newsletterModal');
+    if (!modal) return;
+    _newsletterPreviouslyFocused = document.activeElement;
+    modal.classList.add('visible');
+    const card = modal.querySelector('.ns-card');
+    // set focus inside modal
+    setTimeout(() => {
+      const input = modal.querySelector('#newsletterEmail');
+      if (input) input.focus(); else if (card) card.focus();
+    }, 60);
+    // attach key handler
+    _newsletterKeyHandler = _newsletterKeydownHandler.bind(this);
+    document.addEventListener('keydown', _newsletterKeyHandler, true);
+  }
+
+  function hideNewsletterModal(dismiss) {
+    const modal = document.getElementById('newsletterModal');
+    if (!modal) return;
+    modal.classList.remove('visible');
+    if (dismiss) localStorage.setItem('newsletterDismissed', '1');
+    // remove key handler
+    if (_newsletterKeyHandler) { document.removeEventListener('keydown', _newsletterKeyHandler, true); _newsletterKeyHandler = null; }
+    // restore focus
+    if (_newsletterPreviouslyFocused && typeof _newsletterPreviouslyFocused.focus === 'function') {
+      try { _newsletterPreviouslyFocused.focus(); } catch(e){}
+    }
+    _newsletterPreviouslyFocused = null;
+  }
+
+  // show modal after a few seconds
+  setTimeout(showNewsletterModal, 5500);
   // Smooth scroll for links with .scroll-link
   document.querySelectorAll('a.scroll-link, a#ctaMenu').forEach(function(link) {
     link.addEventListener('click', function(e) {
@@ -91,13 +224,66 @@ document.addEventListener('DOMContentLoaded', function() {
         const nameElements = document.querySelectorAll('.restaurant-name');
         nameElements.forEach(el => el.textContent = config.restaurant_name || 'O\'naan Pizza');
         
-        // Apply logo
+        // Apply logo (only use config.logo; show simple circular spinner while loading)
         const logoElements = document.querySelectorAll('.restaurant-logo');
         logoElements.forEach(el => {
+          // remove any existing spinner
+          const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
+          if (existingSpinner) existingSpinner.remove();
+          if (!config.logo) {
+            if (el.tagName === 'IMG') el.removeAttribute('src');
+            else el.style.backgroundImage = '';
+            el.classList.remove('hidden');
+            return;
+          }
           if (el.tagName === 'IMG') {
-            el.src = config.logo || '/assets/images/logo.png';
+            // hide image and show spinner
+            el.classList.add('hidden');
+            const spinner = document.createElement('span');
+            spinner.className = 'logo-spinner';
+            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+            el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
+            el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
+            el.src = config.logo;
           } else {
-            el.style.backgroundImage = `url('${config.logo || '/assets/images/logo.png'}')`;
+            // background image case: preload
+            const spinner = document.createElement('span');
+            spinner.className = 'logo-spinner';
+            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+            const tmp = new Image();
+            tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
+            tmp.onerror = () => { spinner.remove(); };
+            tmp.src = config.logo;
+          }
+        });
+
+        // Also ensure the hero logo (large logo in hero section) uses the same config.logo with spinner
+        const heroLogoElements = document.querySelectorAll('.hero-logo');
+        heroLogoElements.forEach(el => {
+          const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
+          if (existingSpinner) existingSpinner.remove();
+          if (!config.logo) {
+            if (el.tagName === 'IMG') el.removeAttribute('src');
+            else el.style.backgroundImage = '';
+            el.classList.remove('hidden');
+            return;
+          }
+          if (el.tagName === 'IMG') {
+            el.classList.add('hidden');
+            const spinner = document.createElement('span');
+            spinner.className = 'logo-spinner';
+            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+            el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
+            el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
+            el.src = config.logo;
+          } else {
+            const spinner = document.createElement('span');
+            spinner.className = 'logo-spinner';
+            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+            const tmp = new Image();
+            tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
+            tmp.onerror = () => { spinner.remove(); };
+            tmp.src = config.logo;
           }
         });
         

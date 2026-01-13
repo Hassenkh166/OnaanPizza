@@ -2,825 +2,686 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const logger = require('./utils/logger');
 const fs = require('fs');
+try { require('dotenv').config(); } catch(e) { /* ignore */ }
+const fetch = require('node-fetch');
 
-// initialize Express app and common middleware
+
+
+
+// Supabase client - REQUIRED
+const { createClient } = require('@supabase/supabase-js');
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('SUPABASE_URL and SUPABASE_KEY must be set. Exiting.');
+  process.exit(1);
+}
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+
+// Express
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// Flag: are we using Postgres?
-const USING_PG = !!process.env.DATABASE_URL;
-
-const DB_FILE = path.join(__dirname, 'data.db');
-const PORT = process.env.PORT || 3000;
-
-// In production, silence default console.info/warn to keep logs minimal.
-if (process.env.NODE_ENV === 'production') {
-  console.log = () => {};
-  console.warn = () => {};
-}
-
-// Database adapter: use Postgres when DATABASE_URL is provided, else fall back to SQLite
-let db;
-if (process.env.DATABASE_URL) {
-  const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-  // helper to convert SQLite-style '?' placeholders to Postgres $1, $2...
-  function pgify(sql, params) {
-    if (!sql || !sql.includes('?')) return { sql, params };
-    let i = 0;
-    const newSql = sql.replace(/\?/g, () => '$' + (++i));
-    return { sql: newSql, params: params || [] };
-  }
-
-  db = {
-    serialize: (fn) => { try { fn(); } catch(e) { console.warn('serialize error', e); } },
-    run: (sql, params, cb) => {
-      if (typeof params === 'function') { cb = params; params = []; }
-      const q = pgify(sql, params || []);
-      pool.query(q.sql, q.params).then(res => { if (cb) cb && cb(null, { changes: res.rowCount, lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval) }); }).catch(err => cb && cb(err));
-    },
-    get: (sql, params, cb) => {
-      if (typeof params === 'function') { cb = params; params = []; }
-      const q = pgify(sql, params || []);
-      pool.query(q.sql, q.params).then(res => cb && cb(null, (res.rows && res.rows[0]) || null)).catch(err => cb && cb(err));
-    },
-    all: (sql, params, cb) => {
-      if (typeof params === 'function') { cb = params; params = []; }
-      const q = pgify(sql, params || []);
-      pool.query(q.sql, q.params).then(res => cb && cb(null, res.rows || [])).catch(err => cb && cb(err));
-    },
-    prepare: (sql) => {
-      return {
-        run: function() {
-          const args = Array.from(arguments);
-          const cb = (typeof args[args.length-1] === 'function') ? args.pop() : null;
-          const params = args;
-          const q = pgify(sql, params || []);
-          pool.query(q.sql, q.params).then(res => cb && cb(null, { lastID: res.rows && res.rows[0] && (res.rows[0].id || res.rows[0].lastval), changes: res.rowCount })).catch(err => cb && cb(err));
-        },
-        finalize: function() { /* no-op */ }
-      };
-    }
-  };
-} else {
-  const sqlite3 = require('sqlite3').verbose();
-  const dbExists = fs.existsSync(DB_FILE);
-  db = new sqlite3.Database(DB_FILE);
-
-  db.serialize(() => {
-    if (!dbExists) {
-      db.run(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, name TEXT, icon TEXT, display_order INTEGER DEFAULT 0)`);
-      db.run(`CREATE TABLE products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        slug TEXT UNIQUE,
-        title TEXT,
-        description TEXT,
-        price TEXT,
-        img TEXT,
-        category_id INTEGER,
-        badge TEXT,
-        bread_types TEXT,
-        is_spicy INTEGER DEFAULT 0,
-        is_new INTEGER DEFAULT 0,
-        is_popular INTEGER DEFAULT 0,
-        is_customizable INTEGER DEFAULT 0,
-        available_supplements TEXT,
-        FOREIGN KEY(category_id) REFERENCES categories(id)
-      )`);
-      // new single-row configuration table to store site-wide settings (can be extended later)
-      db.run(`CREATE TABLE configuration (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        theme TEXT,
-        hero_images TEXT,
-        logo TEXT,
-        restaurant_name TEXT,
-        about_images TEXT,
-        primary_color TEXT,
-        secondary_color TEXT,
-        accent_color TEXT,
-        contact_address TEXT,
-        contact_phone TEXT,
-        contact_email TEXT,
-        contact_hours TEXT
-      )`);
-
-      // seed categories with icons
-      const cats = [
-        {slug: 'pizzas', name: 'Pizzas', icon: '🍕', order: 1},
-        {slug: 'sandwichs', name: 'Sandwichs', icon: '🥖', order: 2},
-        {slug: 'assiettes', name: 'Assiettes', icon: '🍽️', order: 3},
-        {slug: 'desserts', name: 'Desserts', icon: '🍰', order: 4},
-        {slug: 'boissons', name: 'Boissons', icon: '🥤', order: 5},
-        {slug: 'supplements', name: 'Suppléments', icon: '➕', order: 6}
-      ];
-      const stmt = db.prepare('INSERT INTO categories (slug, name, icon, display_order) VALUES (?,?,?,?)');
-      for (let cat of cats) stmt.run(cat.slug, cat.name, cat.icon, cat.order);
-      stmt.finalize();
-
-    }
-  });
-}
-
-// Migrations pour ajouter les nouvelles colonnes
-db.serialize(() => {
-  db.all("PRAGMA table_info(products)", (err, cols) => {
-    if (err) return;
-    const names = (cols || []).map(c => c.name);
-    
-    const migrations = [
-      {col: 'badge', sql: 'ALTER TABLE products ADD COLUMN badge TEXT'},
-      {col: 'bread_types', sql: 'ALTER TABLE products ADD COLUMN bread_types TEXT'},
-      {col: 'is_spicy', sql: 'ALTER TABLE products ADD COLUMN is_spicy INTEGER DEFAULT 0'},
-      {col: 'is_new', sql: 'ALTER TABLE products ADD COLUMN is_new INTEGER DEFAULT 0'},
-      {col: 'is_popular', sql: 'ALTER TABLE products ADD COLUMN is_popular INTEGER DEFAULT 0'},
-      {col: 'is_customizable', sql: 'ALTER TABLE products ADD COLUMN is_customizable INTEGER DEFAULT 0'},
-      {col: 'available_supplements', sql: 'ALTER TABLE products ADD COLUMN available_supplements TEXT'}
-    ];
-    
-    migrations.forEach(m => {
-      if (!names.includes(m.col)) {
-        try {
-          db.run(m.sql);
-          console.log(`Migration: added ${m.col} to products`);
-        } catch(e) { console.warn(`Migration failed (${m.col})`); }
-      }
-    });
-    // ensure no free-form badges remain in existing products
-    try {
-      db.run('UPDATE products SET badge = "" WHERE badge IS NOT NULL AND badge != ""', function(err){ if (err) console.warn('Could not clear legacy badges', err); else console.log('Cleared legacy product badge values'); });
-    } catch(e) { /* ignore */ }
-  });
-  
-  db.all("PRAGMA table_info(categories)", (err, cols) => {
-    if (err) return;
-    const names = (cols || []).map(c => c.name);
-    
-    if (!names.includes('icon')) {
-      try {
-        db.run('ALTER TABLE categories ADD COLUMN icon TEXT');
-        console.log('Migration: added icon to categories');
-      } catch(e) { console.warn('Migration failed (icon)'); }
-    }
-    
-    if (!names.includes('display_order')) {
-      try {
-        db.run('ALTER TABLE categories ADD COLUMN display_order INTEGER DEFAULT 0');
-        console.log('Migration: added display_order to categories');
-      } catch(e) { console.warn('Migration failed (display_order)'); }
-    }
-  });
-});
- 
-// In SQLite we create lightweight tables if missing. For Postgres, migrations should be applied separately.
-if (!USING_PG) {
-  // ensure daily_specials table exists
-  db.run(`CREATE TABLE IF NOT EXISTS daily_specials (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER,
-    special_id INTEGER,
-    note TEXT,
-    price_override TEXT,
-    ord INTEGER,
-    date TEXT,
-    FOREIGN KEY(product_id) REFERENCES products(id),
-    FOREIGN KEY(special_id) REFERENCES specials(id)
-  )`);
-
-  // ensure specials table exists (templates for daily specials)
-  db.run(`CREATE TABLE IF NOT EXISTS specials (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT,
-    description TEXT,
-    price TEXT,
-    img TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`);
-
-  // create promotions table (replaces daily_specials functionality)
-  db.run(`CREATE TABLE IF NOT EXISTS promotions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    subtitle TEXT,
-    badge_text TEXT,
-    image_url TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`);
-
-  // Reviews snapshots table (store daily snapshots from external providers)
-  db.run(`CREATE TABLE IF NOT EXISTS reviews_snapshots (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    provider TEXT NOT NULL,
-    place_id TEXT NOT NULL,
-    fetched_at TEXT NOT NULL,
-    avg_rating REAL,
-    total_reviews INTEGER DEFAULT 0,
-    reviews_json TEXT
-  )`);
-}
-
-// Migration: add badge_text column if missing (SQLite-only)
-if (!USING_PG) {
-  db.serialize(() => {
-  db.all("PRAGMA table_info(promotions)", (err, cols) => {
-    if (err) return;
-    const names = (cols || []).map(c => c.name);
-    if (!names.includes('badge_text')) {
-      try {
-        db.run('ALTER TABLE promotions ADD COLUMN badge_text TEXT');
-        console.log('Migration: added badge_text column to promotions');
-      } catch(e) { console.warn('Migration failed (badge_text)'); }
-    }
-  });
-  });
-}
-
-// lightweight migration: if existing daily_specials table was created earlier without special_id, add the column (SQLite-only)
-if (!USING_PG) {
-  db.serialize(() => {
-  db.all("PRAGMA table_info(daily_specials)", (err, cols) => {
-    if (err) return; // ignore
-    const names = (cols || []).map(c => c.name);
-    if (!names.includes('special_id')) {
-      try {
-        db.run('ALTER TABLE daily_specials ADD COLUMN special_id INTEGER');
-        console.log('Migration: added special_id column to daily_specials');
-      } catch(e) { console.warn('Migration failed (special_id)'); }
-    }
-  });
-  });
-}
-
-// Migration: add new columns to existing configuration table (only if upgrading from old version) (SQLite-only)
-if (!USING_PG) {
-  db.serialize(() => {
-  db.all("PRAGMA table_info(configuration)", (err, cols) => {
-    if (err) return; // ignore
-    const names = (cols || []).map(c => c.name);
-    
-    if (!names.includes('primary_color')) {
-      try {
-        db.run('ALTER TABLE configuration ADD COLUMN primary_color TEXT DEFAULT "#8B4513"');
-        console.log('Migration: added primary_color column to configuration');
-      } catch(e) { console.warn('Migration failed (primary_color)'); }
-    }
-    
-    if (!names.includes('secondary_color')) {
-      try {
-        db.run('ALTER TABLE configuration ADD COLUMN secondary_color TEXT DEFAULT "#D2691E"');
-        console.log('Migration: added secondary_color column to configuration');
-      } catch(e) { console.warn('Migration failed (secondary_color)'); }
-    }
-    
-    if (!names.includes('accent_color')) {
-      try {
-        db.run('ALTER TABLE configuration ADD COLUMN accent_color TEXT DEFAULT "#FF6B35"');
-        console.log('Migration: added accent_color column to configuration');
-      } catch(e) { console.warn('Migration failed (accent_color)'); }
-    }
-    
-    if (!names.includes('contact_address')) {
-      try {
-        db.run('ALTER TABLE configuration ADD COLUMN contact_address TEXT DEFAULT "123 Rue de la Médina, Tunis"');
-        console.log('Migration: added contact_address column to configuration');
-      } catch(e) { console.warn('Migration failed (contact_address)'); }
-    }
-    
-    if (!names.includes('contact_phone')) {
-      try {
-        db.run('ALTER TABLE configuration ADD COLUMN contact_phone TEXT DEFAULT "+216 XX XXX XXX"');
-        console.log('Migration: added contact_phone column to configuration');
-      } catch(e) { console.warn('Migration failed (contact_phone)'); }
-    }
-    
-    if (!names.includes('contact_email')) {
-      try {
-        db.run('ALTER TABLE configuration ADD COLUMN contact_email TEXT DEFAULT "contact@saveursdetunis.tn"');
-        console.log('Migration: added contact_email column to configuration');
-      } catch(e) { console.warn('Migration failed (contact_email)'); }
-    }
-    
-    if (!names.includes('contact_hours')) {
-      try {
-        db.run('ALTER TABLE configuration ADD COLUMN contact_hours TEXT DEFAULT "Lundi-Dimanche: 11h-23h"');
-        console.log('Migration: added contact_hours column to configuration');
-      } catch(e) { console.warn('Migration failed (contact_hours)'); }
-    }
-  });
-});
-}
-// lightweight migration: if configuration is empty but hero_images table exists, migrate hero images into configuration
-db.serialize(() => {
-  db.get("SELECT COUNT(*) as c FROM configuration", (err, row) => {
-    if (err) return; // ignore
-    const count = (row && row.c) ? row.c : 0;
-    if (count === 0) {
-      // check if hero_images table exists
-      db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='hero_images'", (err2, trow) => {
-        if (trow && trow.name === 'hero_images') {
-          // read existing hero images
-          db.all('SELECT path, ord FROM hero_images ORDER BY ord ASC', (err3, rows) => {
-            const hero = (rows || []).map(r => ({ path: r.path }));
-            const defaults = {
-              theme: 'default',
-              hero_images: JSON.stringify(hero),
-              logo: '/assets/images/logo.png',
-              restaurant_name: 'O\'naan Pizza',
-              about_images: JSON.stringify([]),
-              primary_color: '#C41E3A',
-              secondary_color: '#FF6B35',
-              accent_color: '#FFD700',
-              contact_address: '9 Rue Charles Schmidt, 93400 Saint-Ouen-sur-Seine',
-              contact_phone: '01 89 46 58 49',
-              contact_email: 'contact@onaanpizza.fr',
-              contact_hours: '7/7j 10h-00h'
-            };
-            const s = db.prepare('INSERT INTO configuration (theme, hero_images, logo, restaurant_name, about_images, primary_color, secondary_color, accent_color, contact_address, contact_phone, contact_email, contact_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
-            s.run(defaults.theme, defaults.hero_images, defaults.logo, defaults.restaurant_name, defaults.about_images, defaults.primary_color, defaults.secondary_color, defaults.accent_color, defaults.contact_address, defaults.contact_phone, defaults.contact_email, defaults.contact_hours, function(err4){
-              s.finalize();
-              // after migration, drop the old table
-              db.run('DROP TABLE IF EXISTS hero_images', (err5) => {
-                if (err5) console.warn('Could not drop hero_images table', err5);
-                else console.log('Dropped legacy hero_images table after migration');
-              });
-            });
-          });
-        } else {
-          // no legacy table: insert a default configuration row
-          const s2 = db.prepare('INSERT INTO configuration (theme, hero_images, logo, restaurant_name, about_images, primary_color, secondary_color, accent_color, contact_address, contact_phone, contact_email, contact_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
-          s2.run('default', JSON.stringify([]), '/assets/images/logo.png', 'O\'naan Pizza', JSON.stringify([]), '#C41E3A', '#FF6B35', '#FFD700', '9 Rue Charles Schmidt, 93400 Saint-Ouen-sur-Seine', '01 89 46 58 49', 'contact@onaanpizza.fr', '7/7j 10h-00h', function(err5){ s2.finalize(); });
-        }
-      });
-    }
-  });
-});
-
-// config endpoints: get and update the single configuration row
-app.get('/api/config', (req, res) => {
-  console.log('API /api/config called');
-  db.get('SELECT * FROM configuration ORDER BY id LIMIT 1', (err, row) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row) {
-      console.log('No configuration row found');
-      return res.json({});
-    }
-    console.log('Configuration row found:', row);
-    let hero_images = [];
-    let about_images = [];
-    try { hero_images = row.hero_images ? JSON.parse(row.hero_images) : []; } catch(e){ hero_images = []; }
-    try { about_images = row.about_images ? JSON.parse(row.about_images) : []; } catch(e){ about_images = []; }
-    const response = { 
-      id: row.id, 
-      theme: row.theme, 
-      hero_images, 
-      logo: row.logo, 
-      restaurant_name: row.restaurant_name, 
-      about_images,
-      primary_color: row.primary_color,
-      secondary_color: row.secondary_color,
-      accent_color: row.accent_color,
-      contact_address: row.contact_address,
-      contact_phone: row.contact_phone,
-      contact_email: row.contact_email,
-      contact_hours: row.contact_hours
-    };
-    console.log('Sending response:', response);
-    res.json(response);
-  });
-});
-
-// update configuration (partial updates supported)
-app.put('/api/config', (req, res) => {
-  console.log('PUT /api/config called with body:', req.body);
-  const body = req.body || {};
-  db.get('SELECT * FROM configuration ORDER BY id LIMIT 1', (err, row) => {
-    if (err) {
-      console.error('Database error in PUT config:', err);
-      return res.status(500).json({ error: err.message });
-    }
-    const existing = row || {
-      theme: 'default',
-      hero_images: JSON.stringify([]),
-      logo: '/assets/images/logo.png',
-      restaurant_name: 'O\'naan Pizza',
-      about_images: JSON.stringify([]),
-      primary_color: '#C41E3A',
-      secondary_color: '#FF6B35',
-      accent_color: '#FFD700',
-      contact_address: '9 Rue Charles Schmidt, 93400 Saint-Ouen-sur-Seine',
-      contact_phone: '01 89 46 58 49',
-      contact_email: 'contact@onaanpizza.fr',
-      contact_hours: '7/7j 10h-00h'
-    };
-
-    console.log('Existing config:', existing);
-
-    // merge values: if provided in body, use it; else keep existing
-    const theme = (typeof body.theme === 'string') ? body.theme : existing.theme;
-    const hero_images = Array.isArray(body.hero_images) ? body.hero_images : (() => { try { return JSON.parse(existing.hero_images || '[]'); } catch(e){ return []; } })();
-    const logo = (typeof body.logo === 'string') ? body.logo : existing.logo;
-    const restaurant_name = (typeof body.restaurant_name === 'string') ? body.restaurant_name : existing.restaurant_name;
-    const about_images = Array.isArray(body.about_images) ? body.about_images : (() => { try { return JSON.parse(existing.about_images || '[]'); } catch(e){ return []; } })();
-    const primary_color = (typeof body.primary_color === 'string') ? body.primary_color : existing.primary_color;
-    const secondary_color = (typeof body.secondary_color === 'string') ? body.secondary_color : existing.secondary_color;
-    const accent_color = (typeof body.accent_color === 'string') ? body.accent_color : existing.accent_color;
-    const contact_address = (typeof body.contact_address === 'string') ? body.contact_address : existing.contact_address;
-    const contact_phone = (typeof body.contact_phone === 'string') ? body.contact_phone : existing.contact_phone;
-    const contact_email = (typeof body.contact_email === 'string') ? body.contact_email : existing.contact_email;
-    const contact_hours = (typeof body.contact_hours === 'string') ? body.contact_hours : existing.contact_hours;
-
-    console.log('New values:', { contact_address, contact_phone, contact_email, contact_hours });
-
-    if (!row) {
-      // insert new
-      console.log('Inserting new configuration row');
-      db.run('INSERT INTO configuration (theme, hero_images, logo, restaurant_name, about_images, primary_color, secondary_color, accent_color, contact_address, contact_phone, contact_email, contact_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-        [theme, JSON.stringify(hero_images), logo, restaurant_name, JSON.stringify(about_images), primary_color, secondary_color, accent_color, contact_address, contact_phone, contact_email, contact_hours], function(err2){
-        if (err2) {
-          console.error('Insert error:', err2);
-          return res.status(500).json({ error: err2.message });
-        }
-        console.log('Insert successful, new ID:', this.lastID);
-        res.json({ id: this.lastID });
-      });
-    } else {
-      console.log('Updating existing configuration row ID:', row.id);
-      db.run('UPDATE configuration SET theme=?, hero_images=?, logo=?, restaurant_name=?, about_images=?, primary_color=?, secondary_color=?, accent_color=?, contact_address=?, contact_phone=?, contact_email=?, contact_hours=? WHERE id=?',
-        [theme, JSON.stringify(hero_images), logo, restaurant_name, JSON.stringify(about_images), primary_color, secondary_color, accent_color, contact_address, contact_phone, contact_email, contact_hours, row.id], function(err3){
-        if (err3) {
-          console.error('Update error:', err3);
-          return res.status(500).json({ error: err3.message });
-        }
-        console.log('Update successful, changes:', this.changes);
-        res.json({ changes: this.changes });
-      });
-    }
-  });
-});
-
-// Serve static files
-// serve static files and images
 app.use(express.static(path.join(__dirname)));
-app.use('/assets/images', express.static(path.join(__dirname, 'assets', 'images')));
 
-// multer setup for uploads
-const uploadDir = path.join(__dirname, 'assets', 'images');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) { cb(null, uploadDir); },
-  filename: function (req, file, cb) {
-    const safe = Date.now() + '-' + file.originalname.replace(/[^a-z0-9.\-\_\.]/gi, '_');
-    cb(null, safe);
+// Multer memory storage for direct upload to Supabase Storage
+const upload = multer({ storage: multer.memoryStorage() });
+const PORT = process.env.PORT || 3000;
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'images';
+
+// Helpers
+function handleSupabaseResult(res, data, error) {
+  if (error) {
+    console.error('Supabase error', error);
+    return res.status(500).json({ error: error.message || 'Supabase error' });
   }
-});
-const upload = multer({ storage });
+  return res.json(data || []);
+}
 
-// upload endpoint
-app.post('/api/upload', upload.single('image'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file' });
-  const url = `/assets/images/${req.file.filename}`;
-  res.json({ url });
-});
+// Parse possibly double-JSON-stringified values into JS values
+function parseLenientJson(value) {
+  let v = value;
+  for (let i = 0; i < 4; i++) {
+    if (typeof v === 'string') {
+      try { v = JSON.parse(v); } catch (e) { break; }
+    } else break;
+  }
+  return v;
+}
 
-// API: categories
-app.get('/api/categories', (req, res) => {
-  db.all('SELECT id, slug, name, icon, display_order FROM categories ORDER BY display_order, id', (err, rows) => {
-    if (err) return res.status(500).json({error: err.message});
-    res.json(rows);
-  });
-});
+// Remove a file from Supabase Storage given a public URL (returns true if removed)
+async function removeStorageFile(url) {
+  if (!url || typeof url !== 'string') return false;
+  const baseStoragePrefix = SUPABASE_URL.replace(/\/$/, '') + `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+  if (url.indexOf(baseStoragePrefix) === -1) return false; // not our storage URL
+  const parts = url.split('/');
+  const filename = decodeURIComponent(parts[parts.length - 1] || '');
+  if (!filename) return false;
 
-// create category (optional admin)
-app.post('/api/categories', (req,res) => {
-  const { slug, name, icon } = req.body;
-  if (!slug || !name) return res.status(400).json({error: 'slug & name required'});
-  db.run('INSERT INTO categories (slug, name, icon) VALUES (?,?,?)', [slug, name, icon || ''], function(err){
-    if (err) return res.status(500).json({error: err.message});
-    res.json({id: this.lastID});
-  });
-});
-
-// update category (name, slug, icon)
-app.put('/api/categories/:slug', (req, res) => {
-  const oldSlug = req.params.slug;
-  const { name, slug, icon } = req.body;
-  console.log(`PUT /api/categories/${oldSlug} called with body:`, req.body);
-  if (!name) return res.status(400).json({ error: 'name required' });
-  db.run('UPDATE categories SET slug = ?, name = ?, icon = ? WHERE slug = ?', [slug || oldSlug, name, icon || '', oldSlug], function(err){
-    if (err) {
-      console.error('Error updating category:', err);
-      return res.status(500).json({ error: err.message });
+  const maxAttempts = 3;
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([filename]);
+      try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] REMOVE_ATTEMPT ${filename} attempt=${attempt} ${error? 'ERR:'+String(error) : 'OK'}\n`); } catch(e){}
+      if (!error) return true;
+      // if error present, fall through to retry
+      console.warn(`removeStorageFile attempt ${attempt} error`, error);
+    } catch (e) {
+      try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] REMOVE_EXCEPTION ${filename} attempt=${attempt} ${String(e)}\n`); } catch(err){}
+      console.warn('removeStorageFile exception', e && e.message);
     }
-    if (this.changes === 0) return res.status(404).json({ error: 'Category not found or no changes' });
-    res.json({ updated: this.changes });
-  });
-});
-
-// delete category by slug - PREVENT deletion if category contains products
-app.delete('/api/categories/:slug', (req, res) => {
-  const slug = req.params.slug;
-  db.get('SELECT id FROM categories WHERE slug = ?', [slug], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!row) return res.status(404).json({ error: 'Category not found' });
-    const catId = row.id;
-    // check if any products belong to this category
-    db.get('SELECT COUNT(*) as c FROM products WHERE category_id = ?', [catId], (err2, r2) => {
-      if (err2) return res.status(500).json({ error: err2.message });
-      const count = (r2 && r2.c) ? r2.c : 0;
-      if (count > 0) {
-        return res.status(400).json({ error: `Cannot delete category that contains ${count} product(s). Reassign or remove products first.` });
-      }
-      // safe to delete
-      db.run('DELETE FROM categories WHERE id = ?', [catId], function(err3){
-        if (err3) return res.status(500).json({ error: err3.message });
-        res.json({ deleted: this.changes });
-      });
-    });
-  });
-});
-
-
-
-// API: products (optionally filter by category slug)
-app.get('/api/products', (req, res) => {
-  const { category } = req.query;
-  let sql = `SELECT 
-    p.id, p.slug, p.title, p.description, p.price, p.img, 
-    p.bread_types, p.is_spicy, p.is_new, p.is_popular, p.is_customizable, p.available_supplements,
-    c.slug as category_slug, c.name as category_name 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id`;
-  const params = [];
-  if (category) {
-    sql += ' WHERE c.slug = ?';
-    params.push(category);
+    // backoff
+    await new Promise(r => setTimeout(r, 200 * Math.pow(2, attempt-1)));
   }
-  sql += ' ORDER BY p.id DESC';
-  db.all(sql, params, (err, rows) => {
-    if (err) return res.status(500).json({error: err.message});
-    res.json(rows);
-  });
+  return false;
+}
+
+// Upload endpoint - uploads to Supabase Storage and returns public URL
+app.post('/api/upload', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      console.warn('Upload called without file');
+      return res.status(400).json({ error: 'No file' });
+    }
+    // ensure logs dir exists
+    try { fs.mkdirSync(path.join(__dirname,'logs'), { recursive: true }); } catch(e){}
+    const reqInfo = { originalname: req.file.originalname, size: req.file.size, mimetype: req.file.mimetype };
+    console.log('Upload request:', reqInfo);
+    try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] REQUEST ${JSON.stringify(reqInfo)}\n`); } catch(e){}
+
+    const filename = `${Date.now()}-${req.file.originalname.replace(/[^a-z0-9.\-\_\.]/gi, '_')}`;
+    const uploadResult = await supabase.storage.from(STORAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+    try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] SUPABASE_RESULT ${JSON.stringify({ ok: !uploadResult.error, error: uploadResult.error ? String(uploadResult.error) : null })}\n`); } catch(e){}
+    console.log('Supabase upload result:', uploadResult && (uploadResult.error ? { error: uploadResult.error } : { data: uploadResult.data }));
+    if (uploadResult && uploadResult.error) {
+      const err = uploadResult.error;
+      console.error('Storage upload error', err);
+      try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] SUPABASE_ERROR ${String(err)}\n`); } catch(e){}
+      return res.status(500).json({ error: err.message || 'Upload failed', details: err });
+    }
+    const base = SUPABASE_URL.replace(/\/$/, '');
+    const publicURL = `${base}/storage/v1/object/public/${STORAGE_BUCKET}/${encodeURIComponent(filename)}`;
+    try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] PUBLIC_URL ${publicURL}\n`); } catch(e){}
+    return res.json({ url: publicURL });
+  } catch (e) {
+    console.error('Upload exception', e);
+    try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] EXCEPTION ${String(e)}\n${e.stack||''}\n`); } catch(err){}
+    return res.status(500).json({ error: e.message || 'Upload failed', stack: e.stack });
+  }
 });
 
-// API: daily specials
-// GET /api/daily-specials?date=YYYY-MM-DD  (default = today)
-app.get('/api/daily-specials', (req, res) => {
-  const date = req.query.date || new Date().toISOString().slice(0,10);
-  // join either product or special (specials are standalone templates for daily items)
-  const sql = `SELECT ds.id, ds.product_id, ds.special_id, ds.note, ds.price_override, ds.ord, ds.date,
-                     p.slug AS product_slug, p.title AS product_title, p.description AS product_description, p.price AS product_price, p.img AS product_img, c.slug AS category_slug,
-                     s.title AS special_title, s.description AS special_description, s.price AS special_price, s.img AS special_img
-               FROM daily_specials ds
-                 LEFT JOIN products p ON ds.product_id = p.id
-                 LEFT JOIN categories c ON p.category_id = c.id
-                 LEFT JOIN specials s ON ds.special_id = s.id
-               WHERE ds.date = ? ORDER BY ds.ord ASC`;
-  db.all(sql, [date], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    // normalize rows: pick special if present else product fields
-    const out = rows.map(r => {
-      const title = r.special_title || r.product_title || '';
-      const description = r.special_description || r.product_description || '';
-      const price = r.price_override || r.special_price || r.product_price || '';
-      const img = r.special_img || r.product_img || '/assets/images/restaurant.jpg';
-      return { id: r.id, product_id: r.product_id, special_id: r.special_id, note: r.note, price, ord: r.ord, date: r.date, title, description, img, category_slug: r.category_slug };
+// Configuration
+app.get('/api/config', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('configuration').select('*').order('id', { ascending: true }).limit(1).maybeSingle();
+    if (error) throw error;
+    if (!data) return res.json({});
+    // ensure JSON fields parsed
+    const cfg = Object.assign({}, data);
+    // lenient JSON parse helper: handles double-stringified values
+    function parseLenientJson(value) {
+      let v = value;
+      for (let i = 0; i < 4; i++) {
+        if (typeof v === 'string') {
+          try { v = JSON.parse(v); } catch (e) { break; }
+        } else break;
+      }
+      return v;
+    }
+    try {
+      const parsedHero = parseLenientJson(cfg.hero_images || []);
+      cfg.hero_images = Array.isArray(parsedHero) ? parsedHero : [];
+      // normalize hero entries to plain strings (URLs)
+      cfg.hero_images = cfg.hero_images.map(h => (typeof h === 'string' ? h : (h && h.path ? h.path : null))).filter(Boolean);
+    } catch (e) { cfg.hero_images = []; }
+    try {
+      const parsedAbout = parseLenientJson(cfg.about_images || []);
+      cfg.about_images = Array.isArray(parsedAbout) ? parsedAbout : [];
+      cfg.about_images = cfg.about_images.map(h => (typeof h === 'string' ? h : (h && h.path ? h.path : null))).filter(Boolean);
+    } catch (e) { cfg.about_images = []; }
+    // Normalize logo: if it's not an absolute http(s) URL, map to Supabase public storage URL using filename
+    try {
+      let logoVal = cfg.logo || '';
+      if (typeof logoVal !== 'string') logoVal = '';
+      logoVal = logoVal.trim();
+      const isAbsolute = /^https?:\/\//i.test(logoVal);
+      if (!isAbsolute) {
+        // attempt to extract filename from local path like '/assets/images/logo.png' or 'logo.png'
+        const parts = logoVal.split('/').filter(Boolean);
+        const filename = parts.length ? parts[parts.length-1] : '';
+        if (filename) {
+          const base = SUPABASE_URL.replace(/\/$/, '');
+          cfg.logo = `${base}/storage/v1/object/public/${STORAGE_BUCKET}/${encodeURIComponent(filename)}`;
+        } else {
+          // fallback: use a default logo filename in storage
+          const base = SUPABASE_URL.replace(/\/$/, '');
+          cfg.logo = `${base}/storage/v1/object/public/${STORAGE_BUCKET}/logo.png`;
+        }
+      }
+      // if it's already absolute, leave as-is
+    } catch (e) {
+      // don't crash on logo normalization
+      console.warn('Logo normalization failed', e);
+    }
+    return res.json(cfg);
+  } catch (e) {
+    console.error('GET /api/config error', e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/config', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const { data: existingArr, error: selErr } = await supabase.from('configuration').select('*').order('id', { ascending: true }).limit(1);
+    if (selErr) throw selErr;
+    const existing = (existingArr && existingArr[0]) ? existingArr[0] : null;
+    // Cleanup: remove hero images removed from the incoming payload and remove replaced logo from Storage
+    try {
+      function parseLenientJson(value) {
+        let v = value;
+        for (let i = 0; i < 4; i++) {
+          if (typeof v === 'string') {
+            try { v = JSON.parse(v); } catch (e) { break; }
+          } else break;
+        }
+        return v;
+      }
+
+      const oldHeroParsed = existing ? parseLenientJson(existing.hero_images || []) : [];
+      const oldHeroArr = Array.isArray(oldHeroParsed) ? oldHeroParsed.map(h => (typeof h === 'string' ? h : (h && h.path ? h.path : null))).filter(Boolean) : [];
+      const newHeroArr = Array.isArray(body.hero_images) ? body.hero_images.map(h => (typeof h === 'string' ? h : (h && h.path ? h.path : null))).filter(Boolean) : [];
+      const removedHeroes = oldHeroArr.filter(x => !newHeroArr.includes(x));
+      const baseStoragePrefix = SUPABASE_URL.replace(/\/$/, '') + `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+      for (const url of removedHeroes) {
+        try {
+          if (typeof url === 'string' && url.indexOf(baseStoragePrefix) !== -1) {
+            const parts = url.split('/');
+            const filename = decodeURIComponent(parts[parts.length - 1] || '');
+            if (filename) {
+              const { error: remErr } = await supabase.storage.from(STORAGE_BUCKET).remove([filename]);
+              if (remErr) console.warn('Failed to remove hero image from storage', remErr);
+              try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] REMOVED_HERO ${filename}\n`); } catch(e){}
+            }
+          }
+        } catch (e) { console.warn('Failed to remove old hero image', url, e && e.message); }
+      }
+
+      // logo cleanup: if logo changed and old logo points to our bucket, remove it
+      try {
+        const oldLogo = existing && existing.logo ? (typeof existing.logo === 'string' ? existing.logo : '') : '';
+        const newLogo = typeof body.logo === 'string' ? body.logo : (existing ? existing.logo : '');
+        if (oldLogo && newLogo && oldLogo !== newLogo && oldLogo.indexOf(baseStoragePrefix) !== -1) {
+          const parts = oldLogo.split('/');
+          const filename = decodeURIComponent(parts[parts.length - 1] || '');
+          if (filename) {
+            const { error: remErr } = await supabase.storage.from(STORAGE_BUCKET).remove([filename]);
+            if (remErr) console.warn('Failed to remove old logo from storage', remErr);
+            try { fs.appendFileSync(path.join(__dirname,'logs','upload.log'), `[${new Date().toISOString()}] REMOVED_OLD_LOGO ${filename}\n`); } catch(e){}
+          }
+        }
+      } catch(e) { console.warn('Failed to remove old logo', e && e.message); }
+    } catch(e) {
+      console.warn('Cleanup step failed', e && e.message);
+    }
+
+    const payload = {
+      theme: typeof body.theme === 'string' ? body.theme : (existing ? existing.theme : 'default'),
+      hero_images: JSON.stringify(Array.isArray(body.hero_images) ? body.hero_images : (existing ? (existing.hero_images || []) : [])),
+      logo: typeof body.logo === 'string' ? body.logo : (existing ? existing.logo : '/assets/images/logo.png'),
+      restaurant_name: typeof body.restaurant_name === 'string' ? body.restaurant_name : (existing ? existing.restaurant_name : "O'naan Pizza"),
+      about_images: JSON.stringify(Array.isArray(body.about_images) ? body.about_images : (existing ? (existing.about_images || []) : [])),
+      primary_color: typeof body.primary_color === 'string' ? body.primary_color : (existing ? existing.primary_color : '#C41E3A'),
+      secondary_color: typeof body.secondary_color === 'string' ? body.secondary_color : (existing ? existing.secondary_color : '#FF6B35'),
+      accent_color: typeof body.accent_color === 'string' ? body.accent_color : (existing ? existing.accent_color : '#FFD700'),
+      contact_address: typeof body.contact_address === 'string' ? body.contact_address : (existing ? existing.contact_address : ''),
+      contact_phone: typeof body.contact_phone === 'string' ? body.contact_phone : (existing ? existing.contact_phone : ''),
+      contact_email: typeof body.contact_email === 'string' ? body.contact_email : (existing ? existing.contact_email : ''),
+      contact_hours: typeof body.contact_hours === 'string' ? body.contact_hours : (existing ? existing.contact_hours : '')
+    };
+    if (!existing) {
+      const { data, error } = await supabase.from('configuration').insert(payload).select().limit(1).single();
+      if (error) throw error;
+      return res.json({ id: data.id });
+    } else {
+      const { data, error } = await supabase.from('configuration').update(payload).eq('id', existing.id).select().limit(1).single();
+      if (error) throw error;
+      return res.json({ changes: 1 });
+    }
+  } catch (e) {
+    console.error('PUT /api/config error', e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Categories CRUD
+app.get('/api/categories', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('categories').select('id, slug, name, icon, display_order').order('display_order', { ascending: true });
+    if (error) throw error;
+    res.json(data || []);
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+app.post('/api/categories', async (req, res) => {
+  try {
+    const { slug, name, icon } = req.body;
+    if (!slug || !name) return res.status(400).json({ error: 'slug & name required' });
+    const { data, error } = await supabase.from('categories').insert({ slug, name, icon: icon || '' }).select().limit(1).single();
+    if (error) throw error;
+    res.json({ id: data.id });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+app.put('/api/categories/:slug', async (req, res) => {
+  try {
+    const oldSlug = req.params.slug;
+    const { name, slug, icon } = req.body;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    const { data: found, error: fErr } = await supabase.from('categories').select('id, icon').eq('slug', oldSlug).limit(1).maybeSingle();
+    if (fErr) throw fErr;
+    if (!found) return res.status(404).json({ error: 'Category not found' });
+    // if icon changed and old icon is in storage, remove it
+    try {
+      const oldIcon = found.icon || '';
+      const newIcon = typeof icon === 'string' ? icon : '';
+      if (oldIcon && newIcon && oldIcon !== newIcon) {
+        await removeStorageFile(oldIcon);
+      }
+    } catch(e) { console.warn('Category icon cleanup failed', e && e.message); }
+    const { data, error } = await supabase.from('categories').update({ slug: slug || oldSlug, name, icon: icon || '' }).eq('id', found.id).select().limit(1).single();
+    if (error) throw error;
+    res.json({ updated: 1 });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+app.delete('/api/categories/:slug', async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const { data: found, error: fErr } = await supabase.from('categories').select('id, icon').eq('slug', slug).limit(1).maybeSingle();
+    if (fErr) throw fErr;
+    if (!found) return res.status(404).json({ error: 'Category not found' });
+    const catId = found.id;
+    // check products
+    const { data: prods, error: pe } = await supabase.from('products').select('id').eq('category_id', catId);
+    if (pe) throw pe;
+    const count = (prods || []).length;
+    if (count > 0) return res.status(400).json({ error: `Cannot delete category that contains ${count} product(s). Reassign or remove products first.` });
+    // remove category icon from storage if present
+    try { if (found.icon) await removeStorageFile(found.icon); } catch(e) { console.warn('Failed to remove category icon', e && e.message); }
+    const { error } = await supabase.from('categories').delete().eq('id', catId);
+    if (error) throw error;
+    res.json({ deleted: 1 });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+// Products
+app.get('/api/products', async (req, res) => {
+  try {
+    const { category } = req.query;
+    const { data: products, error: pErr } = await supabase.from('products').select('*').order('id', { ascending: false });
+    if (pErr) throw pErr;
+    let out = products || [];
+    if (category) {
+      const { data: cat } = await supabase.from('categories').select('id').eq('slug', category).limit(1).maybeSingle();
+      const catId = cat ? cat.id : null;
+      out = out.filter(p => p.category_id === catId);
+    }
+    const { data: allCats } = await supabase.from('categories').select('id,slug,name');
+    const catMap = {};
+    (allCats || []).forEach(c => { catMap[c.id] = c; });
+    const mapped = out.map(p => ({
+      id: p.id, slug: p.slug, title: p.title, description: p.description, price: p.price, img: p.img,
+      bread_types: p.bread_types, is_spicy: p.is_spicy, is_new: p.is_new, is_popular: p.is_popular, is_customizable: p.is_customizable, available_supplements: p.available_supplements,
+      category_slug: (catMap[p.category_id] && catMap[p.category_id].slug) || null,
+      category_name: (catMap[p.category_id] && catMap[p.category_id].name) || null
+    }));
+    res.json(mapped);
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+app.post('/api/products', async (req,res) => {
+  try {
+    const { slug, title, description, price, img, category_slug, is_spicy, is_new, is_popular } = req.body;
+    if (!title || !price || !description || !img) return res.status(400).json({error: 'title, price, description and img required'});
+    let category_id = null;
+    if (category_slug) {
+      const { data: cat, error: cErr } = await supabase.from('categories').select('id').eq('slug', category_slug).limit(1).maybeSingle();
+      if (cErr) throw cErr;
+      category_id = cat ? cat.id : null;
+    }
+    const payload = { slug: slug || title.toLowerCase().replace(/\s+/g,'-'), title, description, price, img, category_id, is_spicy: !!is_spicy, is_new: !!is_new, is_popular: !!is_popular, badge: '' };
+    const { data, error } = await supabase.from('products').insert(payload).select().limit(1).single();
+    if (error) throw error;
+    res.json({ id: data.id });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+app.put('/api/products/:id', async (req,res) => {
+  try {
+    const id = req.params.id;
+    const { title, description, price, img, category_slug, is_spicy, is_new, is_popular } = req.body;
+    if (!title || !price || !description || !img) return res.status(400).json({error: 'title, price, description and img required'});
+    // fetch existing product to detect image changes
+    const { data: existing, error: exErr } = await supabase.from('products').select('*').eq('id', id).limit(1).maybeSingle();
+    if (exErr) throw exErr;
+    if (!existing) return res.status(404).json({ error: 'Product not found' });
+    let category_id = null;
+    if (category_slug) {
+      const { data: cat, error: cErr } = await supabase.from('categories').select('id').eq('slug', category_slug).limit(1).maybeSingle();
+      if (cErr) throw cErr;
+      category_id = cat ? cat.id : null;
+    }
+    // if image changed, remove previous file from storage
+    try {
+      const oldImg = existing.img || '';
+      const newImg = img || '';
+      if (oldImg && newImg && oldImg !== newImg) {
+        await removeStorageFile(oldImg);
+      }
+    } catch(e) { console.warn('Failed to cleanup old product image', e && e.message); }
+    const payload = { title, description, price, img, category_id, is_spicy: !!is_spicy, is_new: !!is_new, is_popular: !!is_popular, badge: '' };
+    const { data, error } = await supabase.from('products').update(payload).eq('id', id).select().limit(1).single();
+    if (error) throw error;
+    res.json({ changes: 1 });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+app.delete('/api/products/:id', async (req,res) => {
+  try {
+    const id = req.params.id;
+    const { data: existing, error: exErr } = await supabase.from('products').select('*').eq('id', id).limit(1).maybeSingle();
+    if (exErr) throw exErr;
+    if (!existing) return res.status(404).json({ error: 'Product not found' });
+    try { if (existing.img) await removeStorageFile(existing.img); } catch(e) { console.warn('Failed to remove product image', e && e.message); }
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ deleted: 1 });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+
+// Daily specials
+app.get('/api/daily-specials', async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().slice(0,10);
+    const { data: rows, error } = await supabase.from('daily_specials').select('*').eq('date', date).order('ord', { ascending: true });
+    if (error) throw error;
+    const productIds = [...new Set((rows||[]).filter(r => r.product_id).map(r => r.product_id))];
+    const specialIds = [...new Set((rows||[]).filter(r => r.special_id).map(r => r.special_id))];
+    const productsMap = {};
+    const specialsMap = {};
+    if (productIds.length) {
+      const { data: prods } = await supabase.from('products').select('id,slug,title,description,price,img,category_id').in('id', productIds);
+      (prods||[]).forEach(p=>productsMap[p.id]=p);
+    }
+    if (specialIds.length) {
+      const { data: sp } = await supabase.from('specials').select('id,title,description,price,img').in('id', specialIds);
+      (sp||[]).forEach(s=>specialsMap[s.id]=s);
+    }
+    const catIds = [...new Set(Object.values(productsMap).map(p=>p.category_id).filter(Boolean))];
+    const catMap = {};
+    if (catIds.length) {
+      const { data: cats } = await supabase.from('categories').select('id,slug').in('id', catIds);
+      (cats||[]).forEach(c=>catMap[c.id]=c);
+    }
+    const out = (rows||[]).map(r => {
+      const sp = r.special_id ? specialsMap[r.special_id] : null;
+      const pr = r.product_id ? productsMap[r.product_id] : null;
+      const title = (sp && sp.title) || (pr && pr.title) || '';
+      const description = (sp && sp.description) || (pr && pr.description) || '';
+      const price = r.price_override || (sp && sp.price) || (pr && pr.price) || '';
+      const img = (sp && sp.img) || (pr && pr.img) || '';
+      const category_slug = pr && pr.category_id ? (catMap[pr.category_id] && catMap[pr.category_id].slug) : null;
+      return { id: r.id, product_id: r.product_id, special_id: r.special_id, note: r.note, price, ord: r.ord, date: r.date, title, description, img, category_slug };
     });
     res.json(out);
-  });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
-// create daily special (body: { product_id, note, price_override, date })
-app.post('/api/daily-specials', (req, res) => {
-  const { product_id, special_id, note, price_override, date } = req.body;
-  const d = date || new Date().toISOString().slice(0,10);
-  db.get('SELECT COALESCE(MAX(ord), -1) as maxord FROM daily_specials WHERE date = ?', [d], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const ord = (row && row.maxord >= 0) ? row.maxord + 1 : 0;
-    db.run('INSERT INTO daily_specials (product_id, special_id, note, price_override, ord, date) VALUES (?,?,?,?,?,?)', [product_id||null, special_id||null, note||'', price_override||'', ord, d], function(err){
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
-    });
-  });
+app.post('/api/daily-specials', async (req, res) => {
+  try {
+    const { product_id, special_id, note, price_override, date } = req.body;
+    const d = date || new Date().toISOString().slice(0,10);
+    const { data: maxRow } = await supabase.from('daily_specials').select('ord').eq('date', d).order('ord', { ascending: false }).limit(1).maybeSingle();
+    const ord = (maxRow && maxRow.ord >= 0) ? maxRow.ord + 1 : 0;
+    const { data, error } = await supabase.from('daily_specials').insert({ product_id: product_id||null, special_id: special_id||null, note: note||'', price_override: price_override||'', ord, date: d }).select().limit(1).single();
+    if (error) throw error;
+    res.json({ id: data.id });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
-// update daily special
-app.put('/api/daily-specials/:id', (req, res) => {
-  const id = req.params.id;
-  const { note, price_override, ord, product_id, date } = req.body;
-  db.run('UPDATE daily_specials SET note=?, price_override=?, ord=?, product_id=?, date=? WHERE id=?', [note||'', price_override||'', ord||0, product_id||null, date||new Date().toISOString().slice(0,10), id], function(err){
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ changes: this.changes });
-  });
+app.put('/api/daily-specials/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { note, price_override, ord, product_id, date } = req.body;
+    const payload = { note: note||'', price_override: price_override||'', ord: ord||0, product_id: product_id||null, date: date||new Date().toISOString().slice(0,10) };
+    const { data, error } = await supabase.from('daily_specials').update(payload).eq('id', id).select().limit(1).single();
+    if (error) throw error;
+    res.json({ changes: 1 });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
-// delete daily special
-app.delete('/api/daily-specials/:id', (req, res) => {
-  const id = req.params.id;
-  db.run('DELETE FROM daily_specials WHERE id=?', [id], function(err){
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ deleted: this.changes });
-  });
+app.delete('/api/daily-specials/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { error } = await supabase.from('daily_specials').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ deleted: 1 });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
-// API: specials (templates) CRUD
-app.get('/api/specials', (req, res) => {
-  db.all('SELECT id, title, description, price, img, created_at FROM specials ORDER BY id DESC', (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+// Specials CRUD
+app.get('/api/specials', async (req,res) => {
+  try { const { data, error } = await supabase.from('specials').select('id, title, description, price, img, created_at').order('id', { ascending: false }); if (error) throw error; res.json(data || []); } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); }
+});
+app.post('/api/specials', async (req,res) => { try { const { title, description, price, img } = req.body; if (!title) return res.status(400).json({ error: 'title required' }); const { data, error } = await supabase.from('specials').insert({ title, description: description||'', price: price||'', img: img||'' }).select().limit(1).single(); if (error) throw error; res.json({ id: data.id }); } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); } });
+app.put('/api/specials/:id', async (req,res) => { try { const id = req.params.id; const { title, description, price, img } = req.body; const { data, error } = await supabase.from('specials').update({ title, description: description||'', price: price||'', img: img||'' }).eq('id', id).select().limit(1).single(); if (error) throw error; res.json({ changes: 1 }); } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); } });
+app.delete('/api/specials/:id', async (req,res) => { try { const id = req.params.id; const { error } = await supabase.from('specials').delete().eq('id', id); if (error) throw error; res.json({ deleted: 1 }); } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); } });
+
+// Promotions CRUD
+app.get('/api/promotions', async (req,res) => { try { const { data, error } = await supabase.from('promotions').select('*').order('id', { ascending: false }); if (error) throw error; res.json(data || []); } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); } });
+app.get('/api/promotions/:id', async (req,res) => { try { const id = req.params.id; const { data, error } = await supabase.from('promotions').select('*').eq('id', id).limit(1).maybeSingle(); if (error) throw error; if (!data) return res.status(404).json({ error: 'Promotion not found' }); res.json(data); } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); } });
+app.post('/api/promotions', async (req,res) => { try { const { title, subtitle, badge_text, image_url } = req.body; if (!title || !subtitle) return res.status(400).json({ error: 'Title and subtitle required' }); const { data, error } = await supabase.from('promotions').insert({ title, subtitle, badge_text: badge_text||'', image_url: image_url||'' }).select().limit(1).single(); if (error) throw error; res.json({ id: data.id }); } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); } });
+app.put('/api/promotions/:id', async (req,res) => {
+  try {
+    const id = req.params.id;
+    const { title, subtitle, badge_text, image_url } = req.body;
+    // fetch existing promotion to detect image change
+    const { data: existing, error: exErr } = await supabase.from('promotions').select('*').eq('id', id).limit(1).maybeSingle();
+    if (exErr) throw exErr;
+    if (!existing) return res.status(404).json({ error: 'Promotion not found' });
+    // if image changed, remove previous file from storage
+    try {
+      const oldImg = existing.image_url || '';
+      const newImg = typeof image_url === 'string' ? image_url : '';
+      if (oldImg && newImg && oldImg !== newImg) {
+        await removeStorageFile(oldImg);
+      }
+    } catch(e) { console.warn('Failed to cleanup old promotion image', e && e.message); }
+    const { data, error } = await supabase.from('promotions').update({ title, subtitle, badge_text: badge_text||'', image_url: image_url||'' }).eq('id', id).select().limit(1).single();
+    if (error) throw error;
+    res.json({ changes: 1 });
+  } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
-app.post('/api/specials', (req, res) => {
-  const { title, description, price, img } = req.body;
-  if (!title) return res.status(400).json({ error: 'title required' });
-  db.run('INSERT INTO specials (title, description, price, img) VALUES (?,?,?,?)', [title, description||'', price||'', img||''], function(err){
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
-  });
+app.delete('/api/promotions/:id', async (req,res) => {
+  try {
+    const id = req.params.id;
+    const { data: existing, error: exErr } = await supabase.from('promotions').select('*').eq('id', id).limit(1).maybeSingle();
+    if (exErr) throw exErr;
+    if (!existing) return res.status(404).json({ error: 'Promotion not found' });
+    try { if (existing.image_url) await removeStorageFile(existing.image_url); } catch(e) { console.warn('Failed to remove promotion image', e && e.message); }
+    const { error } = await supabase.from('promotions').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ deleted: 1 });
+  } catch(e){ res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
-app.put('/api/specials/:id', (req, res) => {
-  const id = req.params.id; const { title, description, price, img } = req.body;
-  db.run('UPDATE specials SET title=?, description=?, price=?, img=? WHERE id=?', [title, description||'', price||'', img||'', id], function(err){
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ changes: this.changes });
-  });
-});
-
-app.delete('/api/specials/:id', (req, res) => {
-  const id = req.params.id;
-  db.run('DELETE FROM specials WHERE id=?', [id], function(err){
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ deleted: this.changes });
-  });
-});
-
-// API: Promotions CRUD
-app.get('/api/promotions', (req, res) => {
-  db.all('SELECT * FROM promotions ORDER BY id DESC', (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows || []);
-  });
-});
-
-app.get('/api/promotions/:id', (req, res) => {
-  const id = req.params.id;
-  db.get('SELECT * FROM promotions WHERE id = ?', [id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!row) return res.status(404).json({ error: 'Promotion not found' });
-    res.json(row);
-  });
-});
-
-app.post('/api/promotions', (req, res) => {
-  const { title, subtitle, badge_text, image_url } = req.body;
-  if (!title || !subtitle) return res.status(400).json({ error: 'Title and subtitle required' });
-  
-  db.run('INSERT INTO promotions (title, subtitle, badge_text, image_url) VALUES (?,?,?,?)', 
-    [title, subtitle, badge_text || '', image_url || ''], 
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
+// Newsletter signup: save client email to `clients` table
+app.post('/api/newsletter', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'invalid email' });
     }
-  );
-});
 
-app.put('/api/promotions/:id', (req, res) => {
-  const id = req.params.id;
-  const { title, subtitle, badge_text, image_url } = req.body;
-  
-  db.run('UPDATE promotions SET title=?, subtitle=?, badge_text=?, image_url=? WHERE id=?', 
-    [title, subtitle, badge_text || '', image_url, id], 
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ changes: this.changes });
+    // check existing
+    const { data: existing, error: exErr } = await supabase.from('clients').select('id,email').eq('email', email).limit(1).maybeSingle();
+    if (exErr) throw exErr;
+    if (existing && existing.id) {
+      return res.json({ id: existing.id, message: 'already_subscribed' });
     }
-  );
-});
 
-app.delete('/api/promotions/:id', (req, res) => {
-  const id = req.params.id;
-  db.run('DELETE FROM promotions WHERE id=?', [id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ deleted: this.changes });
-  });
-});
-
-// Fetch reviews from Google Places and store snapshot
-async function fetchAndStoreGoogleReviews(place_id, api_key) {
-  if (!place_id || !api_key) throw new Error('place_id and api_key required');
-  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(place_id)}&fields=rating,user_ratings_total,reviews&key=${encodeURIComponent(api_key)}`;
-  console.log('Fetching Google Places:', url.replace(/key=[^&]+/, 'key=REDACTED'));
-  const resp = await fetch(url);
-  const jr = await resp.json();
-  if (!jr || jr.status !== 'OK') {
-    throw new Error('Google Places error: ' + (jr && jr.status));
+    const now = new Date().toISOString();
+    const { data, error } = await supabase.from('clients').insert({ email, date: now }).select().limit(1).single();
+    if (error) throw error;
+    return res.json({ id: data.id, message: 'subscribed' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message || 'Supabase error' });
   }
+});
+
+// Admin: list newsletter subscribers
+app.get('/api/newsletter', async (req, res) => {
+  try {
+    // TODO: add admin auth check if available
+    const { data, error } = await supabase.from('clients').select('id,email,date').order('date', { ascending: false }).limit(1000);
+    if (error) throw error;
+    return res.json({ data: data || [] });
+  } catch (e) {
+    console.error('GET /api/newsletter error', e);
+    return res.status(500).json({ error: e.message || 'Supabase error' });
+  }
+});
+
+// Admin: delete subscriber by id
+app.delete('/api/newsletter/:id', async (req, res) => {
+  try {
+    // TODO: add admin auth check
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ deleted: 1 });
+  } catch (e) {
+    console.error('DELETE /api/newsletter/:id error', e);
+    return res.status(500).json({ error: e.message || 'Supabase error' });
+  }
+});
+
+// Reviews fetch/store
+async function fetchAndStoreGoogleReviews(place_id, api_key, language = 'fr') {
+  if (!place_id || !api_key) throw new Error('place_id and api_key required');
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(place_id)}&fields=rating,user_ratings_total,reviews&language=${encodeURIComponent(language)}&key=${encodeURIComponent(api_key)}`;
+  console.log('Fetching Google Places (lang=' + language + '):', url.replace(/key=[^&]+/, 'key=REDACTED'));
+  // Ensure a fetch implementation exists (Node may not provide global.fetch)
+  const fetchFn = (typeof fetch === 'function') ? fetch : (await import('node-fetch')).default;
+  const resp = await fetchFn(url);
+  const jr = await resp.json();
+  if (!jr || jr.status !== 'OK') throw new Error('Google Places error: ' + (jr && jr.status));
   const result = jr.result || {};
+  console.log('reviews: fetched from Google, reviews count=', (result.reviews || []).length);
   const avg = result.rating || null;
   const total = result.user_ratings_total || 0;
   const rawReviews = result.reviews || [];
   const reviews = rawReviews.slice(0, 50).map(r => ({ author: r.author_name, rating: r.rating, time: r.time, relative_time_description: r.relative_time_description || '', text: r.text }));
   const now = new Date().toISOString();
-  return new Promise((resolve, reject) => {
-    db.run('INSERT INTO reviews_snapshots (provider, place_id, fetched_at, avg_rating, total_reviews, reviews_json) VALUES (?,?,?,?,?,?)', ['google', place_id, now, avg, total, JSON.stringify(reviews)], function(err){
-      if (err) return reject(err);
-      resolve({ id: this.lastID, fetched_at: now, avg_rating: avg, total_reviews: total, reviews });
-    });
-  });
+  const payload = { provider: 'google', place_id, fetched_at: now, avg_rating: avg, total_reviews: total, reviews_json: JSON.stringify(reviews) };
+  // If a snapshot for this provider+place_id already exists, update it; otherwise insert.
+  const { data: existing, error: exErr } = await supabase.from('reviews_snapshots').select('id, fetched_at, avg_rating, total_reviews').eq('provider', 'google').eq('place_id', place_id).order('fetched_at', { ascending: false }).limit(1).maybeSingle();
+  if (exErr) throw exErr;
+  console.log('reviews: existing snapshot lookup ->', existing ? { id: existing.id, fetched_at: existing.fetched_at, avg_rating: existing.avg_rating, total_reviews: existing.total_reviews } : null);
+  let outRow;
+  if (existing && existing.id) {
+    console.log('reviews: updating existing id', existing.id);
+    const { data, error } = await supabase.from('reviews_snapshots').update(payload).eq('id', existing.id).select().limit(1).single();
+    if (error) {
+      console.warn('reviews: update error', error.message || error);
+      throw error;
+    }
+    console.log('reviews: update result id', data && data.id);
+    outRow = data;
+  } else {
+    console.log('reviews: inserting new snapshot');
+    const { data, error } = await supabase.from('reviews_snapshots').insert(payload).select().limit(1).single();
+    if (error) {
+      console.warn('reviews: insert error', error.message || error);
+      throw error;
+    }
+    console.log('reviews: insert result id', data && data.id);
+    outRow = data;
+  }
+  return { id: outRow.id, fetched_at: now, avg_rating: avg, total_reviews: total, reviews };
 }
 
-// Trigger fetch: POST /api/reviews/fetch  { provider: 'google', place_id, api_key }
-app.post('/api/reviews/fetch', async (req, res) => {
-  const { provider, place_id, api_key } = req.body || {};
+app.post('/api/reviews/fetch', async (req,res) => {
   try {
+    const { provider, place_id, api_key, language } = req.body || {};
     if (provider !== 'google') return res.status(400).json({ error: 'only google provider supported' });
     const key = api_key || process.env.REV_API_KEY;
     if (!place_id || !key) return res.status(400).json({ error: 'place_id and api_key required' });
-    const out = await fetchAndStoreGoogleReviews(place_id, key);
+    const lang = language || process.env.REV_LANG || 'fr';
+    const out = await fetchAndStoreGoogleReviews(place_id, key, lang);
     res.json(out);
-  } catch (err) {
-    console.error('Error fetching reviews:', err);
-    res.status(500).json({ error: err.message });
-  }
+  } catch(e) { res.status(500).json({ error: e.message || 'error' }); }
 });
 
-// Get latest snapshot: GET /api/reviews?provider=google&place_id=...
-app.get('/api/reviews', (req, res) => {
-  const provider = req.query.provider || 'google';
-  const place_id = req.query.place_id;
-  if (!place_id) return res.status(400).json({ error: 'place_id required' });
-  db.get('SELECT * FROM reviews_snapshots WHERE provider = ? AND place_id = ? ORDER BY fetched_at DESC LIMIT 1', [provider, place_id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!row) return res.json({});
+app.get('/api/reviews', async (req,res) => {
+  try {
+    const provider = req.query.provider || 'google';
+    const place_id = req.query.place_id;
+    const refresh = req.query.refresh === 'true' || req.query.refresh === '1';
+    const lang = req.query.language || process.env.REV_LANG || 'fr';
+    if (!place_id) return res.status(400).json({ error: 'place_id required' });
+    if (refresh) {
+      try {
+        const key = process.env.REV_API_KEY;
+        if (!key) return res.status(400).json({ error: 'server missing REV_API_KEY for refresh' });
+        const fetched = await fetchAndStoreGoogleReviews(place_id, key, lang);
+        // fetched already returns id + reviews
+        return res.json(fetched);
+      } catch(err) {
+        console.warn('reviews: forced refresh failed', err && err.message);
+        return res.status(500).json({ error: err.message || 'refresh failed' });
+      }
+    }
+    const { data, error } = await supabase.from('reviews_snapshots').select('*').eq('provider', provider).eq('place_id', place_id).order('fetched_at', { ascending: false }).limit(1).maybeSingle();
+    if (error) throw error;
+    if (!data) return res.json({});
     let reviews = [];
-    try { reviews = row.reviews_json ? JSON.parse(row.reviews_json) : []; } catch(e){ reviews = []; }
-    res.json({ id: row.id, provider: row.provider, place_id: row.place_id, fetched_at: row.fetched_at, avg_rating: row.avg_rating, total_reviews: row.total_reviews, reviews: reviews.slice(0,10) });
-  });
+    try { reviews = data.reviews_json ? JSON.parse(data.reviews_json) : []; } catch(e){ reviews = []; }
+
+    // Support sorting/filtering from client: ?sort=best&limit=10
+    const sortMode = (req.query.sort || '').toLowerCase();
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+    if (sortMode === 'best') {
+      // Sort by rating desc, then by time desc (most recent among highest rated)
+      reviews = reviews.slice().sort((a,b) => {
+        const ra = Number(a.rating || 0), rb = Number(b.rating || 0);
+        if (rb !== ra) return rb - ra;
+        const ta = Number(a.time || 0), tb = Number(b.time || 0);
+        return tb - ta;
+      }).slice(0, limit);
+    } else {
+      // default: return latest reviews as stored (first N)
+      reviews = reviews.slice(0, limit);
+    }
+
+    return res.json({ id: data.id, provider: data.provider, place_id: data.place_id, fetched_at: data.fetched_at, avg_rating: data.avg_rating, total_reviews: data.total_reviews, reviews });
+  } catch(e) { res.status(500).json({ error: e.message || 'Supabase error' }); }
 });
 
-// Scheduled daily fetch if environment variables are provided
+// Optional scheduled fetch
 if (process.env.REV_PROVIDER === 'google' && process.env.REV_PLACE_ID && process.env.REV_API_KEY) {
   const place = process.env.REV_PLACE_ID;
   const key = process.env.REV_API_KEY;
-  // initial fetch on startup
-  (async () => {
-    try { await fetchAndStoreGoogleReviews(place, key); console.log('Initial reviews fetch complete'); } catch(e) { console.warn('Initial reviews fetch failed', e.message); }
-  })();
-  // schedule every 24h
-  setInterval(async () => {
-    try { await fetchAndStoreGoogleReviews(place, key); console.log('Scheduled reviews fetch complete'); } catch(e) { console.warn('Scheduled reviews fetch failed', e.message); }
-  }, 24 * 60 * 60 * 1000);
+  (async () => { try { await fetchAndStoreGoogleReviews(place, key); console.log('Initial reviews fetch complete'); } catch(e) { console.warn('Initial reviews fetch failed', e.message); } })();
+  setInterval(async () => { try { await fetchAndStoreGoogleReviews(place, key); console.log('Scheduled reviews fetch complete'); } catch(e) { console.warn('Scheduled reviews fetch failed', e.message); } }, 24 * 60 * 60 * 1000);
 }
 
-// create product
-app.post('/api/products', (req,res) => {
-  const { slug, title, description, price, img, category_slug, is_spicy, is_new, is_popular } = req.body;
-  if (!title || !price || !description || !img) return res.status(400).json({error: 'title, price, description and img required'});
-  const spicy = is_spicy ? 1 : 0;
-  const n = is_new ? 1 : 0;
-  const popular = is_popular ? 1 : 0;
-  db.get('SELECT id FROM categories WHERE slug = ?', [category_slug], (err, cat) => {
-    const category_id = cat ? cat.id : null;
-    // ensure we do not store arbitrary free-form badge values; only admin flags are stored
-    const s = db.prepare('INSERT INTO products (slug, title, description, price, img, category_id, is_spicy, is_new, is_popular, badge) VALUES (?,?,?,?,?,?,?,?,?,?)');
-    s.run(slug || title.toLowerCase().replace(/\s+/g,'-'), title, description, price, img, category_id, spicy, n, popular, '', function(err){
-      if (err) return res.status(500).json({error: err.message});
-      res.json({id: this.lastID});
-    });
-  });
-});
-
-// update product
-app.put('/api/products/:id', (req,res) => {
-  const id = req.params.id;
-  const { title, description, price, img, category_slug, is_spicy, is_new, is_popular } = req.body;
-  if (!title || !price || !description || !img) return res.status(400).json({error: 'title, price, description and img required'});
-  const spicy = is_spicy ? 1 : 0;
-  const n = is_new ? 1 : 0;
-  const popular = is_popular ? 1 : 0;
-  db.get('SELECT id FROM categories WHERE slug = ?', [category_slug], (err, cat) => {
-    const category_id = cat ? cat.id : null;
-    // when updating, clear any free-form badge field and only persist admin flags
-    db.run('UPDATE products SET title=?, description=?, price=?, img=?, category_id=?, is_spicy=?, is_new=?, is_popular=?, badge=? WHERE id=?', [title, description, price, img, category_id, spicy, n, popular, '', id], function(err){
-      if (err) return res.status(500).json({error: err.message});
-      res.json({changes: this.changes});
-    });
-  });
-});
-
-// delete product
-app.delete('/api/products/:id', (req,res) => {
-  const id = req.params.id;
-  db.run('DELETE FROM products WHERE id=?', [id], function(err){
-    if (err) return res.status(500).json({error: err.message});
-    res.json({deleted: this.changes});
-  });
-});
-
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
+

@@ -57,7 +57,8 @@ function loadReviews() {
   (async () => {
     let reviewsSource = mockReviews;
     try {
-      const resp = await fetch('/api/reviews?provider=google&place_id=ChIJa6txmmEnVQ0RZxi6aogq6fw');
+      // fetch a larger set and filter client-side for rating > 3
+      const resp = await fetch('/api/reviews?provider=google&place_id=ChIJa6txmmEnVQ0RZxi6aogq6fw&limit=50');
       if (resp.ok) {
         const data = await resp.json();
         // if endpoint returns wrapper with reviews, use it
@@ -69,6 +70,8 @@ function loadReviews() {
             date: r.relative_time_description || (r.time ? new Date(r.time*1000).toLocaleDateString() : ''),
             text: r.text || r.content || ''
           }));
+          // keep only reviews with rating > 3
+          reviewsSource = reviewsSource.filter(rv => Number(rv.rating || 0) > 3);
           // expose average/total if elements exist
           const avgEl = document.getElementById('reviewsAvg');
           const totEl = document.getElementById('reviewsTotal');
@@ -79,13 +82,21 @@ function loadReviews() {
           if (totEl && typeof data.total_reviews !== 'undefined') {
             totEl.textContent = String(data.total_reviews);
           }
+        } else {
+          // server returned no snapshot: treat as "no reviews" (do not use mocks)
+          reviewsSource = [];
         }
       }
     } catch (e) {
       // ignore — we'll use mockReviews
       console.warn('Failed to fetch reviews snapshot, using mocks', e);
     }
-
+    // If there are no reviews available from server, hide the reviews section.
+    if (!reviewsSource || reviewsSource.length === 0) {
+      const reviewsSection = document.getElementById('reviews');
+      if (reviewsSection) reviewsSection.style.display = 'none';
+      return;
+    }
     // Grouper les avis par slides (3 avis par slide sur desktop, 1 sur mobile)
     const reviewsPerSlide = window.innerWidth >= 992 ? 3 : 1;
     const slides = [];

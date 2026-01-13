@@ -104,30 +104,9 @@ async function tryConnect(connStr, useSsl){
       const cols = ['id','provider','place_id','fetched_at','avg_rating','total_reviews','reviews_json'];
       const vals = revs.map(r=>[r.id, r.provider, r.place_id, r.fetched_at || null, r.avg_rating || null, r.total_reviews || 0, r.reviews_json || '[]']);
       await insertIgnore('reviews_snapshots', cols, vals);
-      console.log(`Migrated ${vals.length} reviews_snapshots`);
-    }
-
-    // adjust serial sequences to max(id)
-    const tables = ['categories','products','configuration','promotions','specials','daily_specials','reviews_snapshots'];
+      // DEPRECATED: sqlite -> postgres migration script
+      // This project has switched to Supabase as the single source of truth.
+      // Original migration logic removed to avoid accidental execution.
+      // File retained as marker for history; safe to delete.
+      module.exports = {};
     for(const t of tables){
-      try {
-        const seqRes = await pg.query(`SELECT pg_get_serial_sequence($1, 'id') as seq`, [t]);
-        const seq = seqRes.rows[0].seq;
-        if (seq) {
-          const maxRes = await pg.query(`SELECT COALESCE(MAX(id),0) as m FROM ${t}`);
-          const maxId = maxRes.rows[0].m || 0;
-          await pg.query(`SELECT setval($1, $2, true)`, [seq, Math.max(1, maxId)]);
-          console.log(`Adjusted sequence for ${t} to ${maxId}`);
-        }
-      } catch(e){ /* ignore */ }
-    }
-
-    await pg.end();
-    sqlite.close();
-    console.log('Migration complete.');
-  } catch (err) {
-    console.error('Migration failed:', err.message || err);
-    console.error('DATABASE_URL:', mask(process.env.DATABASE_URL || ''));
-    process.exit(1);
-  }
-})();

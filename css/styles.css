@@ -1,3 +1,43 @@
+/* Why-us section: effet glass et titres élégants */
+.why-us-item.ns-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(2,6,23,0.18);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(6px) saturate(120%);
+  color: #f2f2f2;
+  padding: 22px 12px 18px 12px;
+  margin-bottom: 8px;
+  min-height: 270px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.why-us-item .why-us-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 12px 0 8px 0;
+  background: linear-gradient(90deg, #f8e6a0 0%, #e9c46a 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 4px 12px rgba(212,175,55,0.10), 0 1px 3px rgba(0,0,0,0.25);
+  letter-spacing: 0.5px;
+}
+
+.why-us-item .why-us-text {
+  color: rgba(255,255,255,0.90);
+  font-size: 1.05rem;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1.7;
+  margin-bottom: 0;
+  margin-top: 0.5em;
+}
 :root{
   /* Couleurs principales: rouge et noir */
   --primary-color: #E53935;
@@ -19,6 +59,7 @@
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #E53935 0%, #C62828 100%);
   --gradient-warm: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+  --gradient-accent: linear-gradient(135deg, #F2B705 0%, #F2B705 100%);
   --gradient-overlay: linear-gradient(135deg, rgba(33, 33, 33, 0.85) 0%, rgba(33, 33, 33, 0.75) 100%);
   
   /* Ombres */
@@ -102,7 +143,7 @@ p, .lead {
 }
 
 /* Subtitles and secondary text */
-.section-subtext, .hero-subtitle {
+.section-subtext {
   font-family: 'Poppins', sans-serif;
   font-weight: 400;
   letter-spacing: 0.8px;
@@ -133,6 +174,22 @@ p, .lead {
   display: block;
   transition: transform var(--transition-smooth);
 }
+
+/* Simple circular spinner for logo loading */
+.logo-spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.15);
+  border-top-color: rgba(255,255,255,0.85);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  margin-left: 12px;
+  vertical-align: middle;
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.logo-img.hidden { visibility: hidden; }
+.hero-logo.hidden { visibility: hidden; }
     
     .logo-img:hover {
         transform: scale(1.05);
@@ -156,7 +213,7 @@ p, .lead {
 
 /* CTA */
 .btn-cta{
-  background: var(--gradient-primary);
+  background: var(--gradient-accent);
   color: var(--white);
   border-radius: 50px;
   padding: 1rem 2.5rem;
@@ -237,11 +294,25 @@ main {
   background-size: cover;
   background-position: center;
   opacity: 0;
-  transition: opacity 0.6s ease;
+  transform: scale(1.00);
+  filter: blur(2px) brightness(0.9);
+  transition: opacity 1s ease, transform 8s ease, filter 1s ease;
+  will-change: opacity, transform, filter;
 }
 
 .hero-slideshow .slide.active {
   opacity: 1;
+  transform: scale(1.06);
+  filter: blur(0px) brightness(1);
+}
+
+/* Subtle continuous zoom for active slide to feel more cinematic */
+@keyframes heroZoom {
+  from { transform: scale(1.03); }
+  to { transform: scale(1.08); }
+}
+.hero-slideshow .slide.active {
+  animation: heroZoom 12s linear forwards;
 }
 
 .hero-overlay {
@@ -298,6 +369,76 @@ main {
   animation: goldShimmer 3s ease-in-out infinite;
 }
 
+/* Newsletter modal - Centre Glass design */
+#newsletterModal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 1050; }
+#newsletterModal.visible { display: flex; }
+#newsletterModal .ns-overlay { position: absolute; inset: 0; background: rgba(6,8,10,0.55); backdrop-filter: blur(6px) saturate(120%); }
+
+/* Glass card */
+#newsletterModal .ns-card {
+  position: relative;
+  z-index: 2;
+  width: min(560px, 94%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border-radius: 14px;
+  padding: 22px 20px;
+  box-shadow: 0 20px 60px rgba(2,6,23,0.6);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #f2f2f2;
+  transform: translateY(8px) scale(0.99);
+  opacity: 0;
+  transition: transform .28s cubic-bezier(.2,.9,.2,1), opacity .22s ease;
+  text-align: center;
+}
+#newsletterModal.visible .ns-card { transform: translateY(0) scale(1); opacity: 1; }
+
+#newsletterModal .ns-card h3 {
+  margin: 0 0 6px 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: 0.6px;
+  /* Gold gradient text */
+  background: linear-gradient(90deg, #f8e6a0 0%, #e9c46a 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 6px 18px rgba(212,175,55,0.12), 0 2px 6px rgba(0,0,0,0.45);
+}
+#newsletterModal .ns-card p { margin: 0 0 12px 0; color: rgba(255,255,255,0.88); }
+
+#newsletterModal input[type="email"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(10,10,12,0.45);
+  color: #fff;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  margin-bottom: 12px;
+}
+
+#newsletterModal .ns-actions { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:14px; }
+#newsletterModal .ns-close { position: absolute; right: 12px; top: 8px; background: transparent; border: 0; font-size: 22px; cursor: pointer; color: rgba(255,255,255,0.7); }
+
+#newsletterModal .ns-cta { background: linear-gradient(90deg,#f6c04d,#f1b400); color: #111; padding: 10px 18px; border-radius: 12px; font-weight:800; border: none; box-shadow: 0 8px 24px rgba(241,180,0,0.12); }
+#newsletterModal .ns-secondary { background: transparent; color: rgba(255,255,255,0.95); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+
+/* Ensure inputs and actions are centered */
+#newsletterModal input[type="email"] { margin-left: auto; margin-right: auto; display: block; }
+
+/* Small helper text */
+#newsletterMsg { font-size: 0.925rem; color: rgba(255,255,255,0.85); margin-top: 8px; min-height: 18px; }
+
+/* Responsive tweaks */
+@media (max-width:520px){
+  #newsletterModal .ns-card { width: calc(100% - 24px); padding: 16px; border-radius: 12px; }
+  #newsletterModal .ns-actions { flex-direction: column-reverse; align-items: stretch; }
+  #newsletterModal .ns-actions .ns-cta { width: 100%; }
+}
+
 @keyframes goldShimmer {
   0% {
     background-position: 200% center;
@@ -320,10 +461,31 @@ main {
   line-height: 1.2;
 }
 
+/* Elegant, targeted style for the hero subtitle only */
 .hero-subtitle {
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: clamp(1rem, 2.2vw, 1.5rem);
+  color: rgba(255,255,255,0.95);
+  margin-bottom: 0.75rem;
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+  letter-spacing: 0.2px;
+  line-height: 1.45;
+  text-shadow: 0 6px 18px rgba(0,0,0,0.5);
+}
+
+.hero-subtitle::after {
+  content: '';
+  display: block;
+  width: 64px;
+  height: 3px;
+  background: linear-gradient(90deg, #f8e6a0 0%, #d4af37 100%);
+  margin: 12px auto 0;
+  border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(212,175,55,0.12);
 }
 
 .hero-description {
@@ -382,25 +544,43 @@ main {
 
 .menu-card .card-body {
   padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04));
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  box-shadow: 0 4px 18px rgba(2,6,23,0.10);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(4px) saturate(120%);
 }
+
 
 .menu-card .card-title {
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffe082;
   margin-bottom: 0.75rem;
   font-size: 1.25rem;
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #f8e6a0 0%, #e9c46a 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.10), 0 1px 3px rgba(0,0,0,0.18);
 }
 
 .menu-card .card-text {
-  color: var(--text-secondary);
-  line-height: 1.6;
+  color: #fff;
+  line-height: 1.7;
+  font-size: 1.05rem;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
+  margin-bottom: 0.5em;
 }
 
 .menu-card .price{
   font-weight: 800;
-  color: #D32F2F;
-  font-size: 1.35rem;
-  text-shadow: 0 2px 4px rgba(211, 47, 47, 0.1);
+  color: #FFD700;
+  font-size: 1.25rem;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
 }
 
 .menu-card .card-footer {
@@ -409,15 +589,21 @@ main {
 }
 
 .section-title{
-  font-size: 2.5rem;
+  /* Use the same elegant gold script style as the hero title */
+  font-family: 'Great Vibes', cursive;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
   margin-bottom: 1rem;
-  font-weight: 800;
-  background: var(--gradient-primary);
+  font-weight: 400;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #d4af37 0%, #c9a959 30%, #f4e5a1 50%, #c9a959 70%, #d4af37 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(212, 175, 55, 0.35)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));
   position: relative;
   display: inline-block;
+  animation: goldShimmer 3s ease-in-out infinite;
 }
 
 .section-title::after {
@@ -1021,6 +1207,7 @@ main {
 /* Why Us Section - Modern Icon Style */
 .why-us-grid {
   margin-top: 2rem;
+  align-items: stretch;
 }
 
 .why-us-item {
@@ -1227,16 +1414,22 @@ main {
 
 .google-rating {
   display: inline-block;
-  padding: 1rem 2rem;
-  background: var(--white);
-  border-radius: 50px;
-  box-shadow: var(--shadow-md);
+  padding: 1.1rem 2.2rem 1rem 2.2rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  border-radius: 32px;
+  box-shadow: 0 8px 32px rgba(2,6,23,0.18);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(6px) saturate(120%);
+  color: #ffe082;
+  margin: 0 auto 1.2em auto;
+  text-align: center;
 }
 
 .rating-stars {
   font-size: 1.5rem;
-  color: var(--accent-color);
+  color: #ffd700;
   letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
 }
 
 .rating-stars i {
@@ -1244,8 +1437,9 @@ main {
 }
 
 .rating-text {
-  font-size: 1rem;
-  color: var(--text-secondary);
+  font-size: 1.08rem;
+  color: #fff;
+  margin-top: 0.5em;
   margin: 0;
 }
 
@@ -1261,13 +1455,13 @@ main {
 
 /* Review Card - Design centré avec avatar en haut */
 .review-card {
-  background: var(--white);
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
   border-radius: 20px;
   padding: 2.5rem 2rem;
   margin: 0 1rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 40px rgba(2,6,23,0.18);
   transition: all var(--transition-smooth);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255,255,255,0.10);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1275,7 +1469,34 @@ main {
   text-align: center;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(6px) saturate(120%);
+  color: #f2f2f2;
 }
+.review-card .review-author {
+  color: #ffe082;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
+}
+.review-card .review-date {
+  color: rgba(255,255,255,0.75);
+  font-size: 0.98rem;
+  margin-bottom: 0.2em;
+}
+.review-card .review-text {
+  color: #fff;
+  font-size: 1.08rem;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
+  margin-top: 1.1em;
+  line-height: 1.7;
+}
+.review-card .review-stars i {
+  color: #ffd700;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
+}
+
 
 .review-card::before {
   content: '';
@@ -1595,7 +1816,7 @@ main {
 
 /* Product Card - Modern mobile-first design */
 .product-card {
-  background: rgb(216, 213, 213);
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
   border-radius: 30px;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
@@ -1743,6 +1964,12 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04));
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
+  box-shadow: 0 4px 18px rgba(2,6,23,0.10);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(4px) saturate(120%);
 }
 
 /* Bread tags */
@@ -1770,18 +1997,25 @@ main {
 .product-title {
   font-size: 1.15rem;
   font-weight: 800;
-  color: var(--text-primary);
   margin: 0;
   line-height: 1.3;
   font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #f8e6a0 0%, #e9c46a 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.10), 0 1px 3px rgba(0,0,0,0.18);
 }
 
 /* Description */
 .product-description {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin: 0;
+  font-size: 0.98rem;
+  color: #fff;
+  line-height: 1.7;
+  margin: 0 0 0.5em 0;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1793,17 +2027,18 @@ main {
   margin-top: auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
   padding-top: 0.75rem;
-  border-top: 2px solid rgba(41, 41, 41, 0.881);
+  border-top: 1.5px solid rgba(255,255,255,0.13);
 }
 
 .product-price {
-  font-size: 1.4rem;
+  font-size: 1.18rem;
   font-weight: 800;
-  color: #D32F2F;
+  color: #FFD700;
   letter-spacing: -0.5px;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
 }
 
 .btn-add-cart {

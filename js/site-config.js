@@ -43,12 +43,14 @@ document.addEventListener('DOMContentLoaded', function(){
       
       // Normalize hero images format - ensure each item has a path property
       const rawHeroImages = currentConfig.hero_images || [];
-      heroImages = rawHeroImages.map(img => {
-        if (typeof img === 'string') {
-          return { path: img };
-        }
-        return img; // already an object with path property
-      });
+      heroImages = rawHeroImages
+        .map(img => {
+          if (!img) return null; // filter out null/undefined
+          if (typeof img === 'string') return { path: img };
+          if (typeof img === 'object' && img.path) return img;
+          return null;
+        })
+        .filter(Boolean);
       
       // Populate form fields
       if (restaurantName) {
@@ -104,11 +106,13 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function renderHeroList(){
-    heroList.innerHTML = heroImages.map((h, idx) => `
+    heroList.innerHTML = heroImages.map((h, idx) => {
+      const p = (h && h.path) ? h.path : '';
+      return `
       <div class="d-flex align-items-center mb-2" data-idx="${idx}">
-        <img src="${h.path}" style="width:120px;height:70px;object-fit:cover;border-radius:6px;margin-right:10px">
+        <img src="${p}" style="width:120px;height:70px;object-fit:cover;border-radius:6px;margin-right:10px">
         <div class="flex-fill">
-          <div class="hero-path-ellipsis" title="${h.path}">${h.path}</div>
+          <div class="hero-path-ellipsis" title="${p}">${p}</div>
         </div>
         <div class="btn-group ms-2">
           <button class="btn btn-sm btn-outline-secondary move-up" ${idx===0? 'disabled':''}>↑</button>
@@ -116,7 +120,8 @@ document.addEventListener('DOMContentLoaded', function(){
           <button class="btn btn-sm btn-outline-danger ms-2 remove">Supprimer</button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
     heroList.querySelectorAll('.move-up').forEach(b => b.addEventListener('click', onMoveUp));
     heroList.querySelectorAll('.move-down').forEach(b => b.addEventListener('click', onMoveDown));
     heroList.querySelectorAll('.remove').forEach(b => b.addEventListener('click', onRemoveHero));
@@ -186,6 +191,19 @@ document.addEventListener('DOMContentLoaded', function(){
       currentConfig.logo = jr.url;
       currentLogo.innerHTML = `<img src="${jr.url}" style="max-width:100px;max-height:100px;" alt="Nouveau logo">`;
       showToast('Logo mis à jour','success');
+      // Persist logo immediately so client sees it without requiring manual "Enregistrer"
+      try {
+        const payload = { logo: currentConfig.logo, hero_images: heroImages.map(h => h.path) };
+        const saveRes = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!saveRes.ok) {
+          console.warn('Auto-save logo failed', await saveRes.text());
+          showToast('Échec sauvegarde automatique du logo','warning');
+        } else {
+          showToast('Logo enregistré','success');
+        }
+      } catch (e) {
+        console.error('Auto-save logo error', e);
+      }
     }catch(err){ 
       console.error(err); 
       showToast('Erreur upload logo', 'danger'); 
