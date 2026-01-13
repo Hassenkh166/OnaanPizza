@@ -1,4 +1,4 @@
-Les Saveurs de Tunis — static site + small Express backend
+Onaan Pizza Bordeaux — static site + small Express backend
 
 Quick start (on your host machine):
 
@@ -28,7 +28,7 @@ API endpoints:
 Notes:
 - Images are served from the `assets/images` folder. When adding new product images via admin, upload them to `assets/images` on the server (or provide a public URL).
 - For production deployment, configure a process manager (PM2, systemd) and ensure `data.db` (SQLite) is stored in a persistent location.
-# Les Saveurs de Tunis - Landing Page
+# Onaan Pizza Bordeaux - Landing Page
 
 This is a simple static landing page built with HTML, Bootstrap and custom CSS.
 

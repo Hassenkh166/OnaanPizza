@@ -1,5 +1,5 @@
 {
-  "name": "les-saveurs-de-tunis",
+  "name": "onaan-pizza-bordeaux",
   "version": "1.0.0",
   "description": "Static site with small Express + SQLite backend for products",
   "main": "server.js",

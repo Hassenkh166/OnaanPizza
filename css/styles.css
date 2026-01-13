@@ -1,3 +1,43 @@
+/* Why-us section: effet glass et titres élégants */
+.why-us-item.ns-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(2,6,23,0.18);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(6px) saturate(120%);
+  color: #f2f2f2;
+  padding: 22px 12px 18px 12px;
+  margin-bottom: 8px;
+  min-height: 270px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.why-us-item .why-us-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 12px 0 8px 0;
+  background: linear-gradient(90deg, #f8e6a0 0%, #e9c46a 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 4px 12px rgba(212,175,55,0.10), 0 1px 3px rgba(0,0,0,0.25);
+  letter-spacing: 0.5px;
+}
+
+.why-us-item .why-us-text {
+  color: rgba(255,255,255,0.90);
+  font-size: 1.05rem;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1.7;
+  margin-bottom: 0;
+  margin-top: 0.5em;
+}
 :root{
   /* Couleurs principales: rouge et noir */
   --primary-color: #E53935;
@@ -496,25 +536,43 @@ main {
 
 .menu-card .card-body {
   padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04));
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  box-shadow: 0 4px 18px rgba(2,6,23,0.10);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(4px) saturate(120%);
 }
+
 
 .menu-card .card-title {
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffe082;
   margin-bottom: 0.75rem;
   font-size: 1.25rem;
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #f8e6a0 0%, #e9c46a 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.10), 0 1px 3px rgba(0,0,0,0.18);
 }
 
 .menu-card .card-text {
-  color: var(--text-secondary);
-  line-height: 1.6;
+  color: #fff;
+  line-height: 1.7;
+  font-size: 1.05rem;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
+  margin-bottom: 0.5em;
 }
 
 .menu-card .price{
   font-weight: 800;
-  color: #D32F2F;
-  font-size: 1.35rem;
-  text-shadow: 0 2px 4px rgba(211, 47, 47, 0.1);
+  color: #FFD700;
+  font-size: 1.25rem;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
 }
 
 .menu-card .card-footer {
@@ -1141,6 +1199,7 @@ main {
 /* Why Us Section - Modern Icon Style */
 .why-us-grid {
   margin-top: 2rem;
+  align-items: stretch;
 }
 
 .why-us-item {
@@ -1347,16 +1406,22 @@ main {
 
 .google-rating {
   display: inline-block;
-  padding: 1rem 2rem;
-  background: var(--white);
-  border-radius: 50px;
-  box-shadow: var(--shadow-md);
+  padding: 1.1rem 2.2rem 1rem 2.2rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  border-radius: 32px;
+  box-shadow: 0 8px 32px rgba(2,6,23,0.18);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(6px) saturate(120%);
+  color: #ffe082;
+  margin: 0 auto 1.2em auto;
+  text-align: center;
 }
 
 .rating-stars {
   font-size: 1.5rem;
-  color: var(--accent-color);
+  color: #ffd700;
   letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
 }
 
 .rating-stars i {
@@ -1364,8 +1429,9 @@ main {
 }
 
 .rating-text {
-  font-size: 1rem;
-  color: var(--text-secondary);
+  font-size: 1.08rem;
+  color: #fff;
+  margin-top: 0.5em;
   margin: 0;
 }
 
@@ -1381,13 +1447,13 @@ main {
 
 /* Review Card - Design centré avec avatar en haut */
 .review-card {
-  background: var(--white);
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
   border-radius: 20px;
   padding: 2.5rem 2rem;
   margin: 0 1rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 40px rgba(2,6,23,0.18);
   transition: all var(--transition-smooth);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255,255,255,0.10);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1395,7 +1461,34 @@ main {
   text-align: center;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(6px) saturate(120%);
+  color: #f2f2f2;
 }
+.review-card .review-author {
+  color: #ffe082;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
+}
+.review-card .review-date {
+  color: rgba(255,255,255,0.75);
+  font-size: 0.98rem;
+  margin-bottom: 0.2em;
+}
+.review-card .review-text {
+  color: #fff;
+  font-size: 1.08rem;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
+  margin-top: 1.1em;
+  line-height: 1.7;
+}
+.review-card .review-stars i {
+  color: #ffd700;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
+}
+
 
 .review-card::before {
   content: '';
@@ -1715,7 +1808,7 @@ main {
 
 /* Product Card - Modern mobile-first design */
 .product-card {
-  background: rgb(216, 213, 213);
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
   border-radius: 30px;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
@@ -1863,6 +1956,12 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04));
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
+  box-shadow: 0 4px 18px rgba(2,6,23,0.10);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(4px) saturate(120%);
 }
 
 /* Bread tags */
@@ -1890,18 +1989,25 @@ main {
 .product-title {
   font-size: 1.15rem;
   font-weight: 800;
-  color: var(--text-primary);
   margin: 0;
   line-height: 1.3;
   font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #f8e6a0 0%, #e9c46a 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.10), 0 1px 3px rgba(0,0,0,0.18);
 }
 
 /* Description */
 .product-description {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin: 0;
+  font-size: 0.98rem;
+  color: #fff;
+  line-height: 1.7;
+  margin: 0 0 0.5em 0;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-style: italic;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1913,17 +2019,18 @@ main {
   margin-top: auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
   padding-top: 0.75rem;
-  border-top: 2px solid rgba(41, 41, 41, 0.881);
+  border-top: 1.5px solid rgba(255,255,255,0.13);
 }
 
 .product-price {
-  font-size: 1.4rem;
+  font-size: 1.18rem;
   font-weight: 800;
-  color: #D32F2F;
+  color: #FFD700;
   letter-spacing: -0.5px;
+  text-shadow: 0 2px 8px rgba(212,175,55,0.18);
 }
 
 .btn-add-cart {
