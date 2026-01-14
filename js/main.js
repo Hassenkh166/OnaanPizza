@@ -178,139 +178,139 @@ document.addEventListener('DOMContentLoaded', function() {
     const slides = document.querySelectorAll(".hero-slideshow .slide");
   let currentSlide = 0;
   // helper to start slideshow
-  async function startSlideshow(){
+  function startSlideshow(config) {
     const container = document.querySelector('.hero-slideshow');
-    let slides = document.querySelectorAll('.hero-slideshow .slide');
-    try{
-      const res = await fetch('/api/config');
-      if (res.ok){
-        const config = await res.json();
-        const data = config.hero_images || [];
-        if (Array.isArray(data) && data.length){
-          container.innerHTML = data.map(d => `<div class="slide" style="background-image:url('${d.path || d}')"></div>`).join('');
-        } else {
-          // Fallback: fond noir avec gradient
-          container.innerHTML = `<div class="slide active" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);"></div>`;
-        }
-      } else {
-        // Fallback: fond noir avec gradient
-        container.innerHTML = `<div class="slide active" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);"></div>`;
-      }
-    }catch(e){ 
-      console.warn('Could not fetch hero config', e); 
-      // Fallback: fond noir avec gradient
-      container.innerHTML = `<div class="slide active" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);"></div>`;
+    const data = config.hero_images || [];
+
+    if (Array.isArray(data) && data.length) {
+      container.innerHTML = data
+        .map(url => `<div class="slide" style="background-image:url('${url}')"></div>`)
+        .join('');
+    } else {
+      container.innerHTML = `<div class="slide active" style="background:#111"></div>`;
     }
 
-    slides = document.querySelectorAll('.hero-slideshow .slide');
+    const slides = container.querySelectorAll('.slide');
     if (!slides.length) return;
+
     slides[0].classList.add('active');
-    currentSlide = 0;
+    let current = 0;
+
     setInterval(() => {
-      slides[currentSlide].classList.remove('active');
-      currentSlide = (currentSlide + 1) % slides.length;
-      slides[currentSlide].classList.add('active');
+      slides[current].classList.remove('active');
+      current = (current + 1) % slides.length;
+      slides[current].classList.add('active');
     }, 5000);
   }
 
   // Load and apply general configuration
-  async function loadGeneralConfig(){
+  function applyGeneralConfig(config){
     try{
-      const res = await fetch('/api/config');
-      if (res.ok){
-        const config = await res.json();
-        
-        // Apply restaurant name
-        const nameElements = document.querySelectorAll('.restaurant-name');
-        nameElements.forEach(el => el.textContent = config.restaurant_name || 'O\'naan Pizza');
-        
-        // Apply logo (only use config.logo; show simple circular spinner while loading)
-        const logoElements = document.querySelectorAll('.restaurant-logo');
-        logoElements.forEach(el => {
-          // remove any existing spinner
-          const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
-          if (existingSpinner) existingSpinner.remove();
-          if (!config.logo) {
-            if (el.tagName === 'IMG') el.removeAttribute('src');
-            else el.style.backgroundImage = '';
-            el.classList.remove('hidden');
-            return;
-          }
-          if (el.tagName === 'IMG') {
-            // hide image and show spinner
-            el.classList.add('hidden');
-            const spinner = document.createElement('span');
-            spinner.className = 'logo-spinner';
-            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-            el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
-            el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
-            el.src = config.logo;
-          } else {
-            // background image case: preload
-            const spinner = document.createElement('span');
-            spinner.className = 'logo-spinner';
-            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-            const tmp = new Image();
-            tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
-            tmp.onerror = () => { spinner.remove(); };
-            tmp.src = config.logo;
-          }
-        });
-
-        // Also ensure the hero logo (large logo in hero section) uses the same config.logo with spinner
-        const heroLogoElements = document.querySelectorAll('.hero-logo');
-        heroLogoElements.forEach(el => {
-          const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
-          if (existingSpinner) existingSpinner.remove();
-          if (!config.logo) {
-            if (el.tagName === 'IMG') el.removeAttribute('src');
-            else el.style.backgroundImage = '';
-            el.classList.remove('hidden');
-            return;
-          }
-          if (el.tagName === 'IMG') {
-            el.classList.add('hidden');
-            const spinner = document.createElement('span');
-            spinner.className = 'logo-spinner';
-            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-            el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
-            el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
-            el.src = config.logo;
-          } else {
-            const spinner = document.createElement('span');
-            spinner.className = 'logo-spinner';
-            el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-            const tmp = new Image();
-            tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
-            tmp.onerror = () => { spinner.remove(); };
-            tmp.src = config.logo;
-          }
-        });
-        
-        // Apply contact info
-        const addressEl = document.querySelector('.contact-address');
-        if (addressEl) addressEl.textContent = config.contact_address || '';
-        
-        const phoneEl = document.querySelector('.contact-phone');
-        if (phoneEl) phoneEl.textContent = config.contact_phone || '';
-        
-        const emailEl = document.querySelector('.contact-email');
-        if (emailEl) {
-          emailEl.textContent = config.contact_email || '';
-          emailEl.href = `mailto:${config.contact_email || ''}`;
+      // Apply restaurant name
+      const nameElements = document.querySelectorAll('.restaurant-name');
+      nameElements.forEach(el => el.textContent = config.restaurant_name || 'O\'naan Pizza');
+      
+      // Apply logo (only use config.logo; show simple circular spinner while loading)
+      const logoElements = document.querySelectorAll('.restaurant-logo');
+      logoElements.forEach(el => {
+        // remove any existing spinner
+        const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
+        if (existingSpinner) existingSpinner.remove();
+        if (!config.logo) {
+          if (el.tagName === 'IMG') el.removeAttribute('src');
+          else el.style.backgroundImage = '';
+          el.classList.remove('hidden');
+          return;
         }
-        
-        const hoursEl = document.querySelector('.contact-hours');
-        if (hoursEl) hoursEl.textContent = config.contact_hours || '';
-        
+        if (el.tagName === 'IMG') {
+          // hide image and show spinner
+          el.classList.add('hidden');
+          const spinner = document.createElement('span');
+          spinner.className = 'logo-spinner';
+          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+          el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
+          el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
+          el.src = config.logo;
+        } else {
+          // background image case: preload
+          const spinner = document.createElement('span');
+          spinner.className = 'logo-spinner';
+          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+          const tmp = new Image();
+          tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
+          tmp.onerror = () => { spinner.remove(); };
+          tmp.src = config.logo;
+        }
+      });
+
+      // Also ensure the hero logo (large logo in hero section) uses the same config.logo with spinner
+      const heroLogoElements = document.querySelectorAll('.hero-logo');
+      heroLogoElements.forEach(el => {
+        const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
+        if (existingSpinner) existingSpinner.remove();
+        if (!config.logo) {
+          if (el.tagName === 'IMG') el.removeAttribute('src');
+          else el.style.backgroundImage = '';
+          el.classList.remove('hidden');
+          return;
+        }
+        if (el.tagName === 'IMG') {
+          el.classList.add('hidden');
+          const spinner = document.createElement('span');
+          spinner.className = 'logo-spinner';
+          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+          el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
+          el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
+          el.src = config.logo;
+        } else {
+          const spinner = document.createElement('span');
+          spinner.className = 'logo-spinner';
+          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
+          const tmp = new Image();
+          tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
+          tmp.onerror = () => { spinner.remove(); };
+          tmp.src = config.logo;
+        }
+      });
+      
+      // Apply contact info
+      const addressEl = document.querySelector('.contact-address');
+      if (addressEl) addressEl.textContent = config.contact_address || '';
+      
+      const phoneEl = document.querySelector('.contact-phone');
+      if (phoneEl) phoneEl.textContent = config.contact_phone || '';
+      
+      const emailEl = document.querySelector('.contact-email');
+      if (emailEl) {
+        emailEl.textContent = config.contact_email || '';
+        emailEl.href = `mailto:${config.contact_email || ''}`;
       }
+      
+      const hoursEl = document.querySelector('.contact-hours');
+      if (hoursEl) hoursEl.textContent = config.contact_hours || '';
+      
     }catch(e){ 
       console.warn('Could not load general config', e); 
     }
   }
 
-  // Load configuration first, then start slideshow
-  loadGeneralConfig().then(() => startSlideshow());
+  // SOLUTION: UNE SEULE REQUÊTE /api/config
+  let cachedConfig = null;
+
+  async function initSite() {
+    try {
+      const res = await fetch('/api/config');
+      if (!res.ok) throw new Error('Config fetch failed');
+      cachedConfig = await res.json();
+
+      applyGeneralConfig(cachedConfig);
+      startSlideshow(cachedConfig);
+    } catch (e) {
+      console.warn('Init failed', e);
+    }
+  }
+
+  initSite();
 
   // Radial menu toggle + dynamic positioning
   const menuToggle = document.getElementById('menuToggle');

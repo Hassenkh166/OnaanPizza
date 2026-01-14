@@ -19,6 +19,11 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
 
+// Cache côté serveur pour /api/config (TTL 5 min)
+let cachedConfig = null;
+let cachedAt = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Express
 const app = express();
 app.use(cors());
@@ -115,13 +120,28 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
 
 // Configuration
 app.get('/api/config', async (req, res) => {
+  const now = Date.now();
+
+  if (cachedConfig && now - cachedAt < CACHE_TTL) {
+    console.log('Serving config from cache');
+    return res.json(cachedConfig);
+  }
+
   try {
-    const { data, error } = await supabase.from('configuration').select('*').order('id', { ascending: true }).limit(1).maybeSingle();
+    const { data, error } = await supabase
+      .from('configuration')
+      .select(
+        'restaurant_name, hero_images, about_images, logo, contact_address, contact_phone, contact_email, contact_hours'
+      )
+      .order('id', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
     if (error) throw error;
-    if (!data) return res.json({});
-    // ensure JSON fields parsed
-    const cfg = Object.assign({}, data);
-    // lenient JSON parse helper: handles double-stringified values
+
+    const cfg = data || {};
+
+    // Parse JSON strings back to objects
     function parseLenientJson(value) {
       let v = value;
       for (let i = 0; i < 4; i++) {
@@ -131,42 +151,48 @@ app.get('/api/config', async (req, res) => {
       }
       return v;
     }
+
+    // Parse hero_images
     try {
       const parsedHero = parseLenientJson(cfg.hero_images || []);
       cfg.hero_images = Array.isArray(parsedHero) ? parsedHero : [];
       // normalize hero entries to plain strings (URLs)
       cfg.hero_images = cfg.hero_images.map(h => (typeof h === 'string' ? h : (h && h.path ? h.path : null))).filter(Boolean);
     } catch (e) { cfg.hero_images = []; }
+
+    // Parse about_images
     try {
       const parsedAbout = parseLenientJson(cfg.about_images || []);
       cfg.about_images = Array.isArray(parsedAbout) ? parsedAbout : [];
       cfg.about_images = cfg.about_images.map(h => (typeof h === 'string' ? h : (h && h.path ? h.path : null))).filter(Boolean);
     } catch (e) { cfg.about_images = []; }
-    // Normalize logo: if it's not an absolute http(s) URL, map to Supabase public storage URL using filename
+
+    // Normalize logo
     try {
       let logoVal = cfg.logo || '';
       if (typeof logoVal !== 'string') logoVal = '';
       logoVal = logoVal.trim();
       const isAbsolute = /^https?:\/\//i.test(logoVal);
       if (!isAbsolute) {
-        // attempt to extract filename from local path like '/assets/images/logo.png' or 'logo.png'
         const parts = logoVal.split('/').filter(Boolean);
         const filename = parts.length ? parts[parts.length-1] : '';
         if (filename) {
           const base = SUPABASE_URL.replace(/\/$/, '');
           cfg.logo = `${base}/storage/v1/object/public/${STORAGE_BUCKET}/${encodeURIComponent(filename)}`;
         } else {
-          // fallback: use a default logo filename in storage
           const base = SUPABASE_URL.replace(/\/$/, '');
           cfg.logo = `${base}/storage/v1/object/public/${STORAGE_BUCKET}/logo.png`;
         }
       }
-      // if it's already absolute, leave as-is
     } catch (e) {
-      // don't crash on logo normalization
       console.warn('Logo normalization failed', e);
     }
-    return res.json(cfg);
+
+    cachedConfig = cfg;
+    cachedAt = now;
+    console.log('Config cached:', cachedConfig);
+
+    return res.json(cachedConfig);
   } catch (e) {
     console.error('GET /api/config error', e);
     return res.status(500).json({ error: e.message });
@@ -245,10 +271,16 @@ app.put('/api/config', async (req, res) => {
     if (!existing) {
       const { data, error } = await supabase.from('configuration').insert(payload).select().limit(1).single();
       if (error) throw error;
+      // Invalidate cache
+      cachedConfig = null;
+      cachedAt = 0;
       return res.json({ id: data.id });
     } else {
       const { data, error } = await supabase.from('configuration').update(payload).eq('id', existing.id).select().limit(1).single();
       if (error) throw error;
+      // Invalidate cache
+      cachedConfig = null;
+      cachedAt = 0;
       return res.json({ changes: 1 });
     }
   } catch (e) {
