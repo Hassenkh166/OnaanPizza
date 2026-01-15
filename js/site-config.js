@@ -108,9 +108,13 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderHeroList(){
     heroList.innerHTML = heroImages.map((h, idx) => {
       const p = (h && h.path) ? h.path : '';
+      const isVideo = /\.(mp4|webm)$/i.test(p);
+      const previewElement = isVideo
+        ? `<video src="${p}" style="width:120px;height:70px;object-fit:cover;border-radius:6px;margin-right:10px" muted loop></video>`
+        : `<img src="${p}" style="width:120px;height:70px;object-fit:cover;border-radius:6px;margin-right:10px">`;
       return `
       <div class="d-flex align-items-center mb-2" data-idx="${idx}">
-        <img src="${p}" style="width:120px;height:70px;object-fit:cover;border-radius:6px;margin-right:10px">
+        ${previewElement}
         <div class="flex-fill">
           <div class="hero-path-ellipsis" title="${p}">${p}</div>
         </div>
@@ -165,10 +169,19 @@ document.addEventListener('DOMContentLoaded', function(){
   if (saveHero) saveHero.addEventListener('click', async ()=>{
     try{
       const images = heroImages.map(h => h.path);
+      console.log('Saving hero images:', images);
       const res = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ hero_images: images }) });
-      if (!res.ok) { showToast('Erreur sauvegarde diaporama','danger'); }
+      console.log('Save response status:', res.status);
+      if (!res.ok) { 
+        const errorText = await res.text();
+        console.error('Save error response:', errorText);
+        showToast('Erreur sauvegarde diaporama','danger'); 
+      }
       else { showToast('Diaporama sauvegardé','success'); }
-    }catch(e){ console.error(e); showToast('Erreur réseau','danger'); }
+    }catch(e){ 
+      console.error('Save hero error:', e);
+      showToast('Erreur réseau','danger'); 
+    }
   });
 
   async function saveHeroImages(){

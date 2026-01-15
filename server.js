@@ -201,6 +201,7 @@ app.get('/api/config', async (req, res) => {
 
 app.put('/api/config', async (req, res) => {
   try {
+    console.log('PUT /api/config received:', JSON.stringify(req.body, null, 2));
     const body = req.body || {};
     const { data: existingArr, error: selErr } = await supabase.from('configuration').select('*').order('id', { ascending: true }).limit(1);
     if (selErr) throw selErr;

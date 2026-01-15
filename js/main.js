@@ -184,7 +184,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (Array.isArray(data) && data.length) {
       container.innerHTML = data
-        .map(url => `<div class="slide" style="background-image:url('${url}')"></div>`)
+        .map(url => {
+          const isVideo = /\.(mp4|webm)$/i.test(url);
+          if (isVideo) {
+            return `<video class="slide" autoplay muted loop playsinline style="object-fit: cover;" poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMTExIi8+PC9zdmc+"><source src="${url}" type="video/mp4"></video>`;
+          } else {
+            return `<div class="slide" style="background-image:url('${url}')"></div>`;
+          }
+        })
         .join('');
     } else {
       container.innerHTML = `<div class="slide active" style="background:#111"></div>`;
