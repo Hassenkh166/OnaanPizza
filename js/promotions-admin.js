@@ -1,6 +1,18 @@
 // Admin: Gestion des promotions (CRUD basique)
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Vérifier l'authentification avant de charger l'interface admin
+  checkAuthentication();
+
+  // Gestionnaire pour le lien de déconnexion
+  const logoutLink = document.getElementById('logoutLink');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      logout();
+    });
+  }
+
   const listEl = document.getElementById('promotionsList');
   const form = document.getElementById('promoForm');
   const promoId = document.getElementById('promoId');
@@ -145,6 +157,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  resetForm();
-  loadPromotions();
+  // Fonctions d'authentification
+  async function checkAuthentication() {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      redirectToLogin();
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        localStorage.removeItem('admin_token');
+        redirectToLogin();
+        return;
+      }
+
+      // Token valide, continuer le chargement normal
+      initializePromotions();
+    } catch (error) {
+      console.error('Erreur vérification authentification:', error);
+      localStorage.removeItem('admin_token');
+      redirectToLogin();
+    }
+  }
+
+  function redirectToLogin() {
+    window.location.href = 'login.html';
+  }
+
+  function logout() {
+    localStorage.removeItem('admin_token');
+    window.location.href = 'login.html';
+  }
+
+  function initializePromotions() {
+    // Code d'initialisation existant
+    resetForm();
+    loadPromotions();
+  }
+
+  // initial load - maintenant via checkAuthentication
+  checkAuthentication();
 });

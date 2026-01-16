@@ -1,4 +1,16 @@
 document.addEventListener('DOMContentLoaded', function(){
+  // Vérifier l'authentification avant de charger l'interface admin
+  checkAuthentication();
+
+  // Gestionnaire pour le lien de déconnexion
+  const logoutLink = document.getElementById('logoutLink');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      logout();
+    });
+  }
+
   // Hero images
   const heroFile = document.getElementById('heroFile');
   const heroList = document.getElementById('heroList');
@@ -326,6 +338,50 @@ Configuration actuelle:
     el.addEventListener('hidden.bs.toast', ()=> el.remove());
   }
 
-  // initial load
-  loadConfiguration();
+  // Fonctions d'authentification
+  async function checkAuthentication() {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      redirectToLogin();
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        localStorage.removeItem('admin_token');
+        redirectToLogin();
+        return;
+      }
+
+      // Token valide, continuer le chargement normal
+      initializeSiteConfig();
+    } catch (error) {
+      console.error('Erreur vérification authentification:', error);
+      localStorage.removeItem('admin_token');
+      redirectToLogin();
+    }
+  }
+
+  function redirectToLogin() {
+    window.location.href = 'login.html';
+  }
+
+  function logout() {
+    localStorage.removeItem('admin_token');
+    window.location.href = 'login.html';
+  }
+
+  function initializeSiteConfig() {
+    // Code d'initialisation existant
+    loadConfiguration();
+  }
+
+  // initial load - maintenant via checkAuthentication
+  checkAuthentication();
 });

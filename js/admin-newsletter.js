@@ -1,5 +1,17 @@
 // Admin page for newsletter subscribers
 document.addEventListener('DOMContentLoaded', () => {
+  // Vérifier l'authentification avant de charger l'interface admin
+  checkAuthentication();
+
+  // Gestionnaire pour le lien de déconnexion
+  const logoutLink = document.getElementById('logoutLink');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      logout();
+    });
+  }
+
   const tableBody = document.querySelector('#subscribersTable tbody');
   const exportBtn = document.getElementById('exportCsv');
   const searchInput = document.getElementById('searchEmail');
@@ -115,6 +127,50 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTable(subscribers.filter(s => (s.email || '').toLowerCase().includes(q)));
   });
 
-  // initial load
-  loadSubscribers();
+  // Fonctions d'authentification
+  async function checkAuthentication() {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      redirectToLogin();
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        localStorage.removeItem('admin_token');
+        redirectToLogin();
+        return;
+      }
+
+      // Token valide, continuer le chargement normal
+      initializeNewsletter();
+    } catch (error) {
+      console.error('Erreur vérification authentification:', error);
+      localStorage.removeItem('admin_token');
+      redirectToLogin();
+    }
+  }
+
+  function redirectToLogin() {
+    window.location.href = 'login.html';
+  }
+
+  function logout() {
+    localStorage.removeItem('admin_token');
+    window.location.href = 'login.html';
+  }
+
+  function initializeNewsletter() {
+    // Code d'initialisation existant
+    loadSubscribers();
+  }
+
+  // initial load - maintenant via checkAuthentication
+  checkAuthentication();
 });

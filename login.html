@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - O'naan Pizza Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-gold: #FFD700;
+            --secondary-red: #E53935;
+            --dark-bg: #1a1a1a;
+            --light-bg: #f8f8f8;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--secondary-red) 0%, var(--dark-bg) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            padding: 2rem;
+            width: 100%;
+            max-width: 420px;
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--primary-gold);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-gold) 0%, var(--secondary-red) 100%);
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+     .logo-section img {
+    /* On garde la taille */
+    width: 120px; 
+    height: auto; /* Laisser auto permet de garder les proportions réelles du logo */
+    max-height: 100px;
+
+    /* On supprime les décorations */
+    border-radius: 0; /* Supprime le cercle */
+    border: none;     /* Supprime la bordure dorée */
+    box-shadow: none; /* Supprime l'ombre */
+    background: transparent; /* S'assure qu'il n'y a pas de fond */
+
+    /* Optimisation de l'affichage */
+    object-fit: contain; 
+    margin-bottom: 1rem;
+}
+
+.logo-section h2 {
+    color: var(--secondary-red);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+}
+
+.logo-section p {
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+        .form-floating {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25);
+            background: #fff;
+        }
+
+        .form-floating label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .form-control:focus + label,
+        .form-control:not(:placeholder-shown) + label {
+            color: var(--secondary-red);
+        }
+
+        .input-group-text {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--secondary-red) 100%);
+            border: 2px solid var(--primary-gold);
+            border-right: none;
+            color: white;
+            border-radius: 12px 0 0 12px;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--secondary-red) 100%);
+            border: 2px solid var(--primary-gold);
+            border-radius: 12px;
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(229, 57, 53, 0.3);
+            background: linear-gradient(135deg, #FFE55C 0%, #FF6B6B 100%);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .alert {
+            border-radius: 12px;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            color: var(--secondary-red);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #f1f8e9 0%, #dcedc8 100%);
+            color: #2e7d32;
+        }
+
+        .loading-spinner {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .loading-spinner.show {
+            display: flex;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 1.5rem;
+                margin: 10px;
+                max-width: none;
+            }
+
+            .logo-section h2 {
+                font-size: 1.5rem;
+            }
+
+            .btn-login {
+                font-size: 1rem;
+                padding: 0.7rem 1.5rem;
+            }
+        }
+
+        /* Animation d'entrée */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-container {
+            animation: slideIn 0.6s ease-out;
+        }
+
+        /* Focus styles améliorés */
+        .form-control:focus {
+            transform: scale(1.02);
+        }
+
+        /* Placeholder styling */
+        .form-control::placeholder {
+            color: #adb5bd;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <img src="/assets/images/NewLogo.png" alt="O'naan Pizza Logo" onerror="this.style.display='none'">
+            <h2>O'naan Pizza</h2>
+            <p>Administration</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <form id="loginForm">
+            <div class="form-floating mb-3">
+                <input type="email" class="form-control" id="email" placeholder="votre.email@exemple.com" required>
+                <label for="email">
+                    <i class="fas fa-envelope me-2"></i>Email
+                </label>
+            </div>
+
+            <div class="form-floating mb-4">
+                <input type="password" class="form-control" id="password" placeholder="••••••••" required>
+                <label for="password">
+                    <i class="fas fa-lock me-2"></i>Mot de passe
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-login">
+                <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+            </button>
+        </form>
+
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Connexion en cours...</span>
+            </div>
+            <span class="ms-2 text-muted">Connexion en cours...</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>

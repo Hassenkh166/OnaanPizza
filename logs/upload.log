@@ -260,3 +260,9 @@
 [2026-01-15T14:51:32.137Z] REQUEST {"originalname":"falafel.png","size":1389588,"mimetype":"image/png"}
 [2026-01-15T14:51:32.879Z] SUPABASE_RESULT {"ok":true,"error":null}
 [2026-01-15T14:51:32.881Z] PUBLIC_URL https://ecgujuutpxebpjwdwhcy.supabase.co/storage/v1/object/public/images/1768488692137-falafel.png
+[2026-01-15T15:01:52.393Z] REQUEST {"originalname":"oeuf.png","size":1213434,"mimetype":"image/png"}
+[2026-01-15T15:01:53.368Z] SUPABASE_RESULT {"ok":true,"error":null}
+[2026-01-15T15:01:53.369Z] PUBLIC_URL https://ecgujuutpxebpjwdwhcy.supabase.co/storage/v1/object/public/images/1768489312394-oeuf.png
+[2026-01-15T15:02:47.131Z] REQUEST {"originalname":"frommages.png","size":1342377,"mimetype":"image/png"}
+[2026-01-15T15:02:47.895Z] SUPABASE_RESULT {"ok":true,"error":null}
+[2026-01-15T15:02:48.166Z] PUBLIC_URL https://ecgujuutpxebpjwdwhcy.supabase.co/storage/v1/object/public/images/1768489367131-frommages.png

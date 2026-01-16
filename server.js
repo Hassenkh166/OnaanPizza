@@ -30,6 +30,61 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// Authentification
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Vérifier les credentials
+    if (email === 'onaanpizza@gmail.com' && password === 'OnaanPizza2026!') {
+      // Créer un token simple (en production, utiliser JWT)
+      const token = Buffer.from(`${email}:${Date.now()}:${Math.random()}`).toString('base64');
+
+      res.json({
+        success: true,
+        token: token,
+        message: 'Connexion réussie'
+      });
+    } else {
+      res.status(401).json({
+        success: false,
+        message: 'Email ou mot de passe incorrect'
+      });
+    }
+  } catch (error) {
+    console.error('Erreur login:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/verify-token', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token manquant' });
+    }
+
+    const token = authHeader.substring(7); // Enlever "Bearer "
+
+    // Vérification simple du token (en production, utiliser JWT)
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('ascii');
+      const [email] = decoded.split(':');
+
+      if (email === 'onaanpizza@gmail.com') {
+        res.json({ valid: true });
+      } else {
+        res.status(401).json({ error: 'Token invalide' });
+      }
+    } catch (error) {
+      res.status(401).json({ error: 'Token invalide' });
+    }
+  } catch (error) {
+    console.error('Erreur vérification token:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 // Multer memory storage for direct upload to Supabase Storage
 const upload = multer({ storage: multer.memoryStorage() });
 const PORT = process.env.PORT || 3000;

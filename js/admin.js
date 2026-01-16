@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function(){
+  // Vérifier l'authentification avant de charger l'interface admin
+  checkAuthentication();
+
   const listEl = document.getElementById('productsList');
   const form = document.getElementById('productForm');
   const idInput = document.getElementById('productId');
@@ -22,6 +25,15 @@ document.addEventListener('DOMContentLoaded', function(){
   const resetBtn = document.getElementById('resetBtn'); 
   const addCatBtn = document.getElementById('addCategory'); 
   // site configuration moved to separate page (site-config.html)
+
+  // Gestionnaire pour le lien de déconnexion
+  const logoutLink = document.getElementById('logoutLink');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      logout();
+    });
+  }
 
   /*async function loadCategories(){
     const res = await fetch('/api/categories');
@@ -424,5 +436,50 @@ async function loadCategories() {
     const t = new bootstrap.Toast(el, { delay: 3000 });
     t.show();
     el.addEventListener('hidden.bs.toast', ()=> el.remove());
+  }
+
+  // Fonctions d'authentification
+  async function checkAuthentication() {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      redirectToLogin();
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        localStorage.removeItem('admin_token');
+        redirectToLogin();
+        return;
+      }
+
+      // Token valide, continuer le chargement normal
+      initializeAdmin();
+    } catch (error) {
+      console.error('Erreur vérification authentification:', error);
+      localStorage.removeItem('admin_token');
+      redirectToLogin();
+    }
+  }
+
+  function redirectToLogin() {
+    window.location.href = 'login.html';
+  }
+
+  function logout() {
+    localStorage.removeItem('admin_token');
+    window.location.href = 'login.html';
+  }
+
+  function initializeAdmin() {
+    // Code d'initialisation existant
+    loadCategories();
+    renderList();
   }
 });
