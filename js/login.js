@@ -61,20 +61,32 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function showAlert(message, type) {
-        alertContainer.innerHTML = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+        // Créer un élément d'alerte simple sans Bootstrap
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.style.cssText = `
+            padding: 12px 16px;
+            margin: 10px 0;
+            border-radius: 8px;
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            text-align: center;
+            border: 1px solid ${type === 'success' ? '#D4AF37' : '#ff6b6b'};
+            background: ${type === 'success' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 107, 107, 0.2)'};
         `;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+            ${message}
+        `;
+
+        alertContainer.innerHTML = '';
+        alertContainer.appendChild(alertDiv);
 
         // Auto-dismiss après 5 secondes pour les erreurs
         if (type === 'danger') {
             setTimeout(() => {
-                const alert = alertContainer.querySelector('.alert');
-                if (alert) {
-                    alert.remove();
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
                 }
             }, 5000);
         }
@@ -105,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Animation d'entrée pour les champs de formulaire
-    const formControls = document.querySelectorAll('.form-control');
+    const formControls = document.querySelectorAll('.input-group input');
     formControls.forEach((control, index) => {
         control.style.opacity = '0';
         control.style.transform = 'translateY(20px)';

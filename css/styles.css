@@ -257,16 +257,34 @@ p, .lead {
 }
 
 body {
-  background: url('/assets/images/bg.png') center top / cover no-repeat fixed;
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
+  /* On garde l'image sur le body */
+  background: url('/assets/images/bg.png') center top / cover no-repeat fixed;
+  position: relative;
+}
+
+/* L'overlay (la couche de couleur) */
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* 0.7 est l'opacité (plus c'est haut, moins c'est transparent) */
+  background-color: rgba(0, 0, 0, 0.7); 
+  z-index: 0;
 }
 
 main {
+  position: relative;
+  z-index: 1; /* Pour que le contenu soit au-dessus de l'overlay */
   background: transparent;
   min-height: 100vh;
   padding: 0px;
 }
-
 /* Hero section */
 #hero {
   position: relative;
