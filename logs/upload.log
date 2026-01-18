@@ -266,3 +266,7 @@
 [2026-01-15T15:02:47.131Z] REQUEST {"originalname":"frommages.png","size":1342377,"mimetype":"image/png"}
 [2026-01-15T15:02:47.895Z] SUPABASE_RESULT {"ok":true,"error":null}
 [2026-01-15T15:02:48.166Z] PUBLIC_URL https://ecgujuutpxebpjwdwhcy.supabase.co/storage/v1/object/public/images/1768489367131-frommages.png
+[2026-01-16T13:29:29.826Z] REQUEST {"originalname":"1767509311844-NewLogo.png","size":942945,"mimetype":"image/png"}
+[2026-01-16T13:29:30.594Z] SUPABASE_RESULT {"ok":true,"error":null}
+[2026-01-16T13:29:30.597Z] PUBLIC_URL https://ecgujuutpxebpjwdwhcy.supabase.co/storage/v1/object/public/images/1768570169827-1767509311844-NewLogo.png
+[2026-01-16T13:29:30.857Z] REMOVED_OLD_LOGO 1768479841175-1767504413558-NewLogo.png

@@ -85,7 +85,7 @@ async function loadCategories() {
               <div class="text-muted small">${p.price} — ${p.description}</div>
             </div>
           </div>
-          <div>
+          <div class="product-actions">
             <button class="btn btn-sm btn-outline-primary me-2" data-action="edit" data-id="${p.id}">Modifier</button>
             <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${p.id}">Supprimer</button>
           </div>
