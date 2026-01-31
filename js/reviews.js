@@ -3,51 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadReviews();
 });
 
-// Avis exemple (fallback si l'API n'est pas accessible)
-const mockReviews = [
-  {
-    author: "Sophie Martin",
-    rating: 5,
-    date: "Il y a 2 jours",
-    text: "Excellente pizzeria ! Les pizzas sont délicieuses avec une pâte fine et croustillante. Le kebab est généreux et les frites maison sont un régal. Service rapide et accueillant. Je recommande vivement !"
-  },
-  {
-    author: "Ahmed Benali",
-    rating: 5,
-    date: "Il y a 1 semaine",
-    text: "Meilleur naan de la région ! La viande est halal et de qualité. Les portions sont généreuses et les prix très corrects. L'équipe est sympa et professionnelle. Mon QG pour les soirées entre amis."
-  },
-  {
-    author: "Marie Dubois",
-    rating: 4,
-    date: "Il y a 2 semaines",
-    text: "Très bon rapport qualité-prix. Les pizzas sont savoureuses et bien garnies. Petit bémol sur l'attente en soirée mais ça vaut le coup d'attendre. La sauce blanche est divine !"
-  },
-  {
-    author: "Lucas Bernard",
-    rating: 5,
-    date: "Il y a 3 semaines",
-    text: "Super découverte ! Le crousty chicken est incroyable, croustillant à souhait. Les sandwichs sont copieux et les ingrédients frais. Livraison rapide via Deliveroo. Top !"
-  },
-  {
-    author: "Fatima Zahra",
-    rating: 5,
-    date: "Il y a 1 mois",
-    text: "Restaurant familial chaleureux. Les naans garnis sont authentiques et délicieux. Les enfants adorent les pizzas 4 fromages. Prix très abordables pour la qualité offerte. Bravo !"
-  },
-  {
-    author: "Thomas Lefebvre",
-    rating: 4,
-    date: "Il y a 1 mois",
-    text: "Bonne adresse pour manger rapidement. Les kebabs sont bien garnis avec beaucoup de viande. La salade est fraîche. Dommage qu'il n'y ait pas plus de places assises mais sinon c'est parfait."
-  },
-  {
-    author: "Yasmine Kaci",
-    rating: 5,
-    date: "Il y a 2 mois",
-    text: "Je commande régulièrement et je ne suis jamais déçue ! Les pizzas sont toujours chaudes et délicieuses. Le tacos est un délice. L'accueil est toujours souriant. Mon resto préféré du quartier !"
-  }
-];
+
 
 function loadReviews() {
   const container = document.getElementById('reviewsCarouselInner');
@@ -55,32 +11,59 @@ function loadReviews() {
 
   // Attempt to fetch latest snapshot from server; fall back to mocks on error
   (async () => {
-    let reviewsSource = mockReviews;
+    let reviewsSource = [];
     try {
-      // fetch a larger set and filter client-side for rating > 3
-      const resp = await fetch('/api/reviews?provider=google&place_id=ChIJa6txmmEnVQ0RZxi6aogq6fw&limit=50');
+      // Appel à la fonction Edge Supabase pour récupérer les reviews
+      const { FUNCTIONS, supabaseKey } = await import('./supabaseClient.js');
+      console.log("Clé utilisée :", supabaseKey);
+      const resp = await fetch(`${FUNCTIONS.reviews}?provider=google&place_id=ChIJa6txmmEnVQ0RZxi6aogq6fw&limit=50`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
+        }
+      });
       if (resp.ok) {
         const data = await resp.json();
+        
+        // Handle case where data might be an array (from Supabase query)
+        let reviewData = data;
+        if (Array.isArray(data)) {
+          reviewData = data[0] || {};
+        }
+        
+        // Parse reviews_json if it exists
+        let reviews = [];
+        if (reviewData.reviews_json) {
+          try {
+            reviews = JSON.parse(reviewData.reviews_json);
+            console.log('Parsed reviews:', reviews);
+          } catch (e) {
+            console.warn('Failed to parse reviews_json:', e);
+            reviews = [];
+          }
+        }
+        
         // if endpoint returns wrapper with reviews, use it
-        if (data && Array.isArray(data.reviews) && data.reviews.length) {
+        if (reviews && reviews.length) {
           // map Google-like reviews to the shape used by the renderer
-          reviewsSource = data.reviews.map(r => ({
+          reviewsSource = reviews.map(r => ({
             author: r.author || r.author_name || 'Utilisateur',
             rating: r.rating || 0,
             date: r.relative_time_description || (r.time ? new Date(r.time*1000).toLocaleDateString() : ''),
             text: r.text || r.content || ''
           }));
-          // keep only reviews with rating > 3
-          reviewsSource = reviewsSource.filter(rv => Number(rv.rating || 0) > 3);
+          // keep only reviews with rating > 4 (5 stars only)
+          reviewsSource = reviewsSource.filter(rv => Number(rv.rating || 0) > 4);
           // expose average/total if elements exist
           const avgEl = document.getElementById('reviewsAvg');
           const totEl = document.getElementById('reviewsTotal');
-          if (avgEl && typeof data.avg_rating !== 'undefined') {
-            const n = Number(data.avg_rating);
-            avgEl.textContent = Number.isFinite(n) ? n.toFixed(1) : data.avg_rating;
+          if (avgEl && typeof reviewData.avg_rating !== 'undefined') {
+            const n = Number(reviewData.avg_rating);
+            avgEl.textContent = Number.isFinite(n) ? n.toFixed(1) : reviewData.avg_rating;
           }
-          if (totEl && typeof data.total_reviews !== 'undefined') {
-            totEl.textContent = String(data.total_reviews);
+          if (totEl && typeof reviewData.total_reviews !== 'undefined') {
+            totEl.textContent = String(reviewData.total_reviews);
           }
         } else {
           // server returned no snapshot: treat as "no reviews" (do not use mocks)

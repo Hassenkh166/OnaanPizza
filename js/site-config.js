@@ -1,13 +1,16 @@
-document.addEventListener('DOMContentLoaded', function(){
-  // Vérifier l'authentification avant de charger l'interface admin
-  checkAuthentication();
+import { supabase,supabaseKey,FUNCTIONS } from './supabaseClient.js';
+import { requireAuth } from './checkAuthentication.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await requireAuth();
 
   // Gestionnaire pour le lien de déconnexion
   const logoutLink = document.getElementById('logoutLink');
   if (logoutLink) {
-    logoutLink.addEventListener('click', function(e) {
+    logoutLink.addEventListener('click', async function(e) {
       e.preventDefault();
-      logout();
+      await supabase.auth.signOut();
+      window.location.href = 'login.html';
     });
   }
 
@@ -41,81 +44,99 @@ document.addEventListener('DOMContentLoaded', function(){
 
   let currentConfig = {};
 
-  async function loadConfiguration(){
-    try{
-      // Show loading state
-      const loadingToastId = 'loading-' + Date.now();
-      showToast('Chargement de la configuration...', 'info', 0); // 0 = no auto-hide
-      
-      const res = await fetch('/api/config');
-      currentConfig = await res.json();
-      
-      // Debug: log the received config
-      console.log('Configuration reçue:', currentConfig);
-      
-      // Normalize hero images format - ensure each item has a path property
-      const rawHeroImages = currentConfig.hero_images || [];
-      heroImages = rawHeroImages
-        .map(img => {
-          if (!img) return null; // filter out null/undefined
-          if (typeof img === 'string') return { path: img };
-          if (typeof img === 'object' && img.path) return img;
-          return null;
-        })
-        .filter(Boolean);
-      
-      // Populate form fields
-      if (restaurantName) {
-        restaurantName.value = currentConfig.restaurant_name || '';
+  async function loadConfiguration() {
+  try {
+    // Show loading toast
+    const loadingToastId = 'loading-' + Date.now();
+    showToast('Chargement de la configuration...', 'info', 0); // 0 = no auto-hide
+
+    // --- Fetch configuration from Supabase Edge Function ---
+    const res = await fetch(FUNCTIONS.getConfig, {
+      method: 'GET',
+      headers: {
+        apikey: supabaseKey, 
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+
+    const data = await res.json();
+    currentConfig = data;
+    console.log('Configuration reçue:', currentConfig);
+
+    // --- Normalize hero images ---
+     let rawHeroImages = currentConfig.hero_images;
+
+    // Cas 1 : string JSON depuis la DB
+    if (typeof rawHeroImages === 'string') {
+      try {
+        rawHeroImages = JSON.parse(rawHeroImages);
+      } catch {
+        rawHeroImages = [];
       }
-      if (contactAddress) {
-        contactAddress.value = currentConfig.contact_address || '';
-      }
-      if (contactPhone) {
-        contactPhone.value = currentConfig.contact_phone || '';
-      }
-      if (contactEmail) {
-        contactEmail.value = currentConfig.contact_email || '';
-      }
-      if (contactHours) {
-        contactHours.value = currentConfig.contact_hours || '';
-      }
-      
-      // Show current logo
-      if (currentLogo && currentConfig.logo) {
-        currentLogo.innerHTML = `<img src="${currentConfig.logo}" style="max-width:100px;max-height:100px;" alt="Logo actuel">`;
-      }
-      
-      renderHeroList();
-      
-      // Hide loading toast and show success
-      document.querySelectorAll('.toast').forEach(toast => {
-        if (toast.querySelector('.toast-body')?.textContent?.includes('Chargement')) {
-          toast.remove();
-        }
-      });
-      showToast('Configuration chargée avec succès','success');
-      
-      // Enable all form fields after loading
-      if (restaurantName) restaurantName.disabled = false;
-      if (logoFile) logoFile.disabled = false;
-      if (contactAddress) contactAddress.disabled = false;
-      if (contactPhone) contactPhone.disabled = false;
-      if (contactEmail) contactEmail.disabled = false;
-      if (contactHours) contactHours.disabled = false;
-      
-      // Debug: verify values are set in form fields
-      setTimeout(() => {
-        console.log('Vérification des valeurs dans les champs:');
-        console.log('Restaurant name field:', restaurantName ? restaurantName.value : 'Element not found');
-        console.log('Contact address field:', contactAddress ? contactAddress.value : 'Element not found');
-      }, 1000);
-      
-    }catch(e){ 
-      console.error('Erreur lors du chargement de la configuration:', e); 
-      showToast('Erreur lors du chargement de la configuration','danger'); 
     }
+
+    // Cas 2 : pas un tableau → on sécurise
+    if (!Array.isArray(rawHeroImages)) {
+      rawHeroImages = [];
+    }
+
+    heroImages = rawHeroImages
+      .map(img => {
+        if (!img) return null;
+        if (typeof img === 'string') return { path: img };
+        if (typeof img === 'object' && img.path) return img;
+        return null;
+      })
+      .filter(Boolean);
+
+    // --- Populate form fields ---
+    const fields = [
+      { el: restaurantName, value: currentConfig.restaurant_name },
+      { el: contactAddress, value: currentConfig.contact_address },
+      { el: contactPhone, value: currentConfig.contact_phone },
+      { el: contactEmail, value: currentConfig.contact_email },
+      { el: contactHours, value: currentConfig.contact_hours },
+    ];
+
+    fields.forEach(f => {
+      if (f.el) {
+        f.el.value = f.value || '';
+        f.el.disabled = false;
+      }
+    });
+
+    // --- Show current logo ---
+    if (currentLogo && currentConfig.logo) {
+      currentLogo.innerHTML = `<img src="${currentConfig.logo}" style="max-width:100px; max-height:100px;" alt="Logo actuel">`;
+    }
+    if (logoFile) logoFile.disabled = false;
+
+    // --- Render hero images list ---
+    renderHeroList();
+
+    // --- Remove loading toast and show success ---
+    document.querySelectorAll('.toast').forEach(toast => {
+      if (toast.querySelector('.toast-body')?.textContent?.includes('Chargement')) {
+        toast.remove();
+      }
+    });
+    showToast('Configuration chargée avec succès', 'success');
+
+    // --- Debug: check values ---
+    setTimeout(() => {
+      console.log('Vérification des champs:');
+      console.log('Restaurant name:', restaurantName?.value);
+      console.log('Contact address:', contactAddress?.value);
+    }, 500);
+
+  } catch (e) {
+    console.error('Erreur lors du chargement de la configuration:', e);
+    showToast('Erreur lors du chargement de la configuration', 'danger');
   }
+}
+
 
   function renderHeroList(){
     heroList.innerHTML = heroImages.map((h, idx) => {
@@ -166,7 +187,11 @@ document.addEventListener('DOMContentLoaded', function(){
     for (let f of Array.from(this.files)){
       const fd = new FormData(); fd.append('image', f);
       try{
-        const r = await fetch('/api/upload', { method: 'POST', body: fd });
+        const r = await fetch(FUNCTIONS.upload, { 
+          method: 'POST', 
+          headers: { 'apikey': supabaseKey },
+          body: fd 
+        });
         const jr = await r.json();
         heroImages.push({ path: jr.url });
       }catch(err){ console.error(err); showToast('Erreur upload image', 'danger'); }
@@ -182,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function(){
     try{
       const images = heroImages.map(h => h.path);
       console.log('Saving hero images:', images);
-      const res = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ hero_images: images }) });
+      const res = await fetch(FUNCTIONS.updateConfig, { method: 'POST', headers: {'Content-Type':'application/json', 'apikey': supabaseKey}, body: JSON.stringify({ hero_images: images }) });
       console.log('Save response status:', res.status);
       if (!res.ok) { 
         const errorText = await res.text();
@@ -199,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function(){
   async function saveHeroImages(){
     try{
       const images = heroImages.map(h => h.path);
-      const res = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ hero_images: images }) });
+      const res = await fetch(FUNCTIONS.updateConfig, { method: 'POST', headers: {'Content-Type':'application/json', 'apikey': supabaseKey}, body: JSON.stringify({ hero_images: images }) });
       if (!res.ok) { showToast('Erreur sauvegarde diaporama','danger'); }
       else { showToast('Diaporama mis à jour','success'); }
     }catch(e){ console.error(e); showToast('Erreur réseau','danger'); }
@@ -211,7 +236,11 @@ document.addEventListener('DOMContentLoaded', function(){
     const fd = new FormData(); 
     fd.append('image', this.files[0]);
     try{
-      const r = await fetch('/api/upload', { method: 'POST', body: fd });
+      const r = await fetch(FUNCTIONS.upload, { 
+        method: 'POST', 
+        headers: { 'apikey': supabaseKey },
+        body: fd 
+      });
       const jr = await r.json();
       currentConfig.logo = jr.url;
       currentLogo.innerHTML = `<img src="${jr.url}" style="max-width:100px;max-height:100px;" alt="Nouveau logo">`;
@@ -219,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function(){
       // Persist logo immediately so client sees it without requiring manual "Enregistrer"
       try {
         const payload = { logo: currentConfig.logo, hero_images: heroImages.map(h => h.path) };
-        const saveRes = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const saveRes = await fetch(FUNCTIONS.updateConfig, { method: 'POST', headers: {'Content-Type':'application/json', 'apikey': supabaseKey}, body: JSON.stringify(payload) });
         if (!saveRes.ok) {
           console.warn('Auto-save logo failed', await saveRes.text());
           showToast('Échec sauvegarde automatique du logo','warning');
@@ -249,9 +278,9 @@ document.addEventListener('DOMContentLoaded', function(){
         hero_images: heroImages.map(h => h.path) // Include hero images
       };
       
-      const res = await fetch('/api/config', { 
-        method: 'PUT', 
-        headers: {'Content-Type':'application/json'}, 
+      const res = await fetch(FUNCTIONS.updateConfig, { 
+        method: 'POST', 
+        headers: {'Content-Type':'application/json', 'apikey': supabaseKey}, 
         body: JSON.stringify(configData) 
       });
       
@@ -283,9 +312,9 @@ document.addEventListener('DOMContentLoaded', function(){
         hero_images: [] // Reset hero images to empty
       };
       
-      const res = await fetch('/api/config', { 
-        method: 'PUT', 
-        headers: {'Content-Type':'application/json'}, 
+      const res = await fetch(FUNCTIONS.updateConfig, { 
+        method: 'POST', 
+        headers: {'Content-Type':'application/json', 'apikey': supabaseKey}, 
         body: JSON.stringify(defaults) 
       });
       
@@ -339,49 +368,7 @@ Configuration actuelle:
   }
 
   // Fonctions d'authentification
-  async function checkAuthentication() {
-    const token = localStorage.getItem('admin_token');
-    if (!token) {
-      redirectToLogin();
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/verify-token', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        localStorage.removeItem('admin_token');
-        redirectToLogin();
-        return;
-      }
-
-      // Token valide, continuer le chargement normal
-      initializeSiteConfig();
-    } catch (error) {
-      console.error('Erreur vérification authentification:', error);
-      localStorage.removeItem('admin_token');
-      redirectToLogin();
-    }
-  }
-
-  function redirectToLogin() {
-    window.location.href = 'login.html';
-  }
-
-  function logout() {
-    localStorage.removeItem('admin_token');
-    window.location.href = 'login.html';
-  }
-
-  function initializeSiteConfig() {
-    // Code d'initialisation existant
-    loadConfiguration();
-  }
-
-  // initial load - maintenant via checkAuthentication
-  checkAuthentication();
+// plus de checkAuthentication, tout est géré par requireAuth
+  // Initialisation du site config après auth
+  loadConfiguration();
 });

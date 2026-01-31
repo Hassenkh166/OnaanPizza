@@ -17,8 +17,17 @@ async function setupSimpleCarousel() {
   }
 
   try {
-    // 2. Récupération des données
-    const response = await fetch('/api/promotions');
+    // 2. Récupération des données via Edge Function Supabase
+    const { FUNCTIONS, roleKey } = await import('./supabaseClient.js');
+     const response = await fetch(FUNCTIONS.promotions, {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': roleKey, 
+                    'Authorization': `Bearer ${roleKey}`
+                  },
+                });
+
     if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
     const promotions = await response.json();
 

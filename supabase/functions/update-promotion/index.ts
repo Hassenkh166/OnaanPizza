@@ -1,0 +1,125 @@
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+console.log("Hello from update-promotion function!")
+
+// CORS headers centralisés
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: corsHeaders,
+    })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: corsHeaders,
+    })
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    const { id, title, subtitle, badge_text, image_url } = await req.json()
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'Promotion ID required' }), {
+        status: 400,
+        headers: corsHeaders,
+      })
+    }
+
+    if (!title || !subtitle) {
+      return new Response(JSON.stringify({ error: 'Title and subtitle required' }), {
+        status: 400,
+        headers: corsHeaders,
+      })
+    }
+
+    // Fetch existing promotion to detect image change
+    const { data: existing, error: exErr } = await supabase
+      .from('promotions')
+      .select('*')
+      .eq('id', id)
+      .limit(1)
+      .maybeSingle()
+
+    if (exErr) throw exErr
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'Promotion not found' }), {
+        status: 404,
+        headers: corsHeaders,
+      })
+    }
+
+    // Check if image changed and delete old image from storage
+    const oldImageUrl = existing.image_url || ''
+    const newImageUrl = image_url || ''
+
+    if (oldImageUrl && newImageUrl && oldImageUrl !== newImageUrl) {
+      try {
+        // Extract filename from Supabase Storage URL
+        const urlParts = oldImageUrl.split('/')
+        const filename = urlParts[urlParts.length - 1]
+
+        if (filename) {
+          const { error: deleteError } = await supabase.storage
+            .from('images')
+            .remove([filename])
+
+          if (deleteError) {
+            console.warn('Failed to delete old image:', deleteError)
+          } else {
+            console.log('Old image deleted successfully:', filename)
+          }
+        }
+      } catch (e) {
+        console.warn('Error deleting old image:', e)
+      }
+    }
+
+    // Update the promotion
+    const { data, error } = await supabase
+      .from('promotions')
+      .update({
+        title,
+        subtitle,
+        badge_text: badge_text || '',
+        image_url: image_url || ''
+      })
+      .eq('id', id)
+      .select()
+      .limit(1)
+      .single()
+
+    if (error) throw error
+
+    return new Response(JSON.stringify({ changes: 1, data }), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    })
+  }
+})

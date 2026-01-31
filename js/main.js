@@ -1,5 +1,7 @@
 // Smooth scroll for anchor links and navbar behavior
 document.addEventListener('DOMContentLoaded', function() {
+    initSite();
+
   // Pre-insert spinners so a loader is visible immediately while config loads
   function ensureInitialLogoSpinners() {
     const all = document.querySelectorAll('.restaurant-logo, .hero-logo');
@@ -58,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
       try {
         const btn = form.querySelector('button[type=submit]');
         btn.disabled = true; btn.textContent = 'Enregistrement...';
-        const resp = await fetch('/api/newsletter', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+        const resp = await fetch(FUNCTIONS.newsletter, { method: 'POST', headers: {'Content-Type':'application/json', 'apikey': roleKey}, body: JSON.stringify({ email }) });
         let jr = {};
         try { jr = await resp.json(); } catch(e){}
         if (resp.ok) {
@@ -301,23 +303,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // SOLUTION: UNE SEULE REQUÊTE /api/config
   let cachedConfig = null;
 
   async function initSite() {
+     const { FUNCTIONS, supabaseKey } = await import('./supabaseClient.js');
     try {
-      const res = await fetch('/api/config');
+      const res = await fetch(FUNCTIONS.getConfig, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
+        }
+      });
       if (!res.ok) throw new Error('Config fetch failed');
       cachedConfig = await res.json();
-
+      console.log("---------------");
+      console.log(cachedConfig);
       applyGeneralConfig(cachedConfig);
-      startSlideshow(cachedConfig);
+      // Correction: parser hero_images si c'est une chaîne JSON
+      let heroImages = cachedConfig.hero_images;
+      if (typeof heroImages === 'string') {
+        try { heroImages = JSON.parse(heroImages); } catch(e) { heroImages = []; }
+      }
+      startSlideshow({ ...cachedConfig, hero_images: heroImages });
     } catch (e) {
       console.warn('Init failed', e);
     }
   }
 
-  initSite();
 
   // Radial menu toggle + dynamic positioning
   const menuToggle = document.getElementById('menuToggle');

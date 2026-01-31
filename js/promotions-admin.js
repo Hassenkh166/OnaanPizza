@@ -1,15 +1,18 @@
 // Admin: Gestion des promotions (CRUD basique)
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Vérifier l'authentification avant de charger l'interface admin
-  checkAuthentication();
+import { supabase , FUNCTIONS , roleKey} from './supabaseClient.js';
+import { requireAuth } from './checkAuthentication.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await requireAuth();
 
   // Gestionnaire pour le lien de déconnexion
   const logoutLink = document.getElementById('logoutLink');
   if (logoutLink) {
-    logoutLink.addEventListener('click', function(e) {
+    logoutLink.addEventListener('click', async function(e) {
       e.preventDefault();
-      logout();
+      await supabase.auth.signOut();
+      window.location.href = 'login.html';
     });
   }
 
@@ -27,7 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
   async function uploadImage(file){
     const fd = new FormData();
     fd.append('image', file);
-    const res = await fetch('/api/upload', { method:'POST', body: fd });
+    const res = await fetch(FUNCTIONS.upload, {
+      method:'POST',
+      headers: { 'apikey': roleKey },
+      body: fd
+    });
     if (!res.ok) throw new Error('Upload failed');
     const data = await res.json();
     return data.url;
@@ -49,8 +56,25 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadPromotions(){
     listEl.innerHTML = '<div class="text-muted">Chargement...</div>';
     try{
-      const res = await fetch('/api/promotions');
-      const promos = await res.json();
+
+         const res = await fetch(FUNCTIONS.promotions, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': roleKey, 
+                'Authorization': `Bearer ${roleKey}`
+              },
+            });
+        
+              if (!res.ok) {
+                console.error('Erreur HTTP', res.status, res.statusText);
+                const errBody = await res.text();
+                console.error('Body:', errBody);
+                return;
+              }
+              const data = await res.json();
+              const promos = data ;
+      
       if (!promos.length){
         listEl.innerHTML = '<div class="text-muted">Aucune promotion pour le moment</div>';
         return;
@@ -71,36 +95,34 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
       `).join('');
-      listEl.querySelectorAll('.edit-promo').forEach(btn => btn.addEventListener('click', onEdit));
-      listEl.querySelectorAll('.delete-promo').forEach(btn => btn.addEventListener('click', onDelete));
+      const promoItems = listEl.querySelectorAll('.list-group-item');
+      promoItems.forEach((item, index) => {
+        const p = promos[index];
+        item.querySelector('.edit-promo').addEventListener('click', () => onEdit(p));
+        item.querySelector('.delete-promo').addEventListener('click', () => onDelete(p.id));
+      });
     }catch(e){
       console.error(e);
       listEl.innerHTML = '<div class="text-danger">Erreur de chargement</div>';
     }
   }
 
-  async function onEdit(e){
-    const id = e.currentTarget.closest('[data-id]').dataset.id;
-    try{
-      const res = await fetch(`/api/promotions/${id}`);
-      if (!res.ok) throw new Error('Not found');
-      const p = await res.json();
-      promoId.value = p.id;
-      promoTitle.value = p.title || '';
-      promoSubtitle.value = p.subtitle || '';
-      promoBadge.value = p.badge_text || '';
-      renderPreview(p.image_url || '');
-    }catch(err){
-      console.error(err);
-      alert('Impossible de charger cette promotion');
-    }
+  function onEdit(p){
+    promoId.value = p.id;
+    promoTitle.value = p.title || '';
+    promoSubtitle.value = p.subtitle || '';
+    promoBadge.value = p.badge_text || '';
+    renderPreview(p.image_url || '');
   }
 
-  async function onDelete(e){
-    const id = e.currentTarget.closest('[data-id]').dataset.id;
+  async function onDelete(id){
     if (!confirm('Supprimer cette promotion ?')) return;
     try{
-      const res = await fetch(`/api/promotions/${id}`, { method:'DELETE' });
+      const res = await fetch(FUNCTIONS.deletePromotion, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
       if (!res.ok) throw new Error('Delete failed');
       await loadPromotions();
     }catch(err){
@@ -141,13 +163,25 @@ document.addEventListener('DOMContentLoaded', () => {
         image_url: imageUrl
       };
       const id = promoId.value;
-      const method = id ? 'PUT' : 'POST';
-      const url = id ? `/api/promotions/${id}` : '/api/promotions';
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      let res;
+      if (id) {
+        // Update existing promotion
+     res = await fetch(FUNCTIONS.updatePromotion, {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'apikey': roleKey // Ajoute cette ligne !
+  },
+  body: JSON.stringify({ id, ...payload })
+});
+      } else {
+        // Create new promotion
+        res = await fetch(FUNCTIONS.promotions, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
       if (!res.ok) throw new Error('Save failed');
       resetForm();
       await loadPromotions();
@@ -158,43 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Fonctions d'authentification
-  async function checkAuthentication() {
-    const token = localStorage.getItem('admin_token');
-    if (!token) {
-      redirectToLogin();
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/verify-token', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        localStorage.removeItem('admin_token');
-        redirectToLogin();
-        return;
-      }
-
-      // Token valide, continuer le chargement normal
-      initializePromotions();
-    } catch (error) {
-      console.error('Erreur vérification authentification:', error);
-      localStorage.removeItem('admin_token');
-      redirectToLogin();
-    }
-  }
-
-  function redirectToLogin() {
-    window.location.href = 'login.html';
-  }
-
-  function logout() {
-    localStorage.removeItem('admin_token');
-    window.location.href = 'login.html';
-  }
+  // plus de checkAuthentication, tout est géré par requireAuth
 
   function initializePromotions() {
     // Code d'initialisation existant
@@ -202,6 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPromotions();
   }
 
-  // initial load - maintenant via checkAuthentication
-  checkAuthentication();
+  // Initialisation après auth
+  initializePromotions();
 });

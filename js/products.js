@@ -6,26 +6,36 @@ let activeCategory = '';
 
 // Load categories and products
 async function loadMenu() {
-  console.log('🔄 Loading menu...');
   try {
+    // Appel Edge Function pour les produits
+    // On suppose que la clé roleKey est disponible comme dans newsletter
+    const { FUNCTIONS, roleKey ,supabaseKey } = await import('./supabaseClient.js');
     const [catRes, prodRes] = await Promise.all([
-      fetch('/api/categories'),
-      fetch('/api/products')
+      fetch(FUNCTIONS.getCategories, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': roleKey,
+          'Authorization': `Bearer ${roleKey}`
+        }
+      }),
+      fetch(FUNCTIONS.getProducts, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': roleKey,
+          'Authorization': `Bearer ${roleKey}`
+        }
+      })
     ]);
-    
-    console.log('✅ Categories response:', catRes.status);
-    console.log('✅ Products response:', prodRes.status);
-    
+
     categories = await catRes.json();
     products = await prodRes.json();
-    
-    console.log('📦 Categories loaded:', categories);
-    console.log('📦 Products loaded:', products);
-    
+
     // Sort categories by display_order
-      categories.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-    
-      renderFilters();
+    categories.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+    renderFilters();
     renderProducts();
   } catch (err) {
     console.error('❌ Erreur chargement menu:', err);
@@ -44,7 +54,7 @@ function renderFilters() {
   const filters = [];
   
   categories.forEach(cat => {
-    const count = products.filter(p => p.category_slug === cat.slug).length;
+    const count = products.filter(p => p.category_id === cat.id).length;
     if (count > 0) {
       filters.push({ 
         slug: cat.slug, 
@@ -57,9 +67,7 @@ function renderFilters() {
 
   // If no active category chosen yet, default to the first available
   if (!activeCategory && filters.length) activeCategory = filters[0].slug;
-  
-  console.log('🎯 Filters to render:', filters);
-  
+    
   container.innerHTML = filters.map((f, index) => `
     <button 
       class="filter-pill ${f.slug === activeCategory ? 'active' : ''}" 
@@ -99,18 +107,25 @@ function filterProducts(categorySlug) {
 
 // Render product cards
 function renderProducts() {
-  console.log('🎨 Rendering products...');
   const container = document.getElementById('productGrid');
   if (!container) {
     console.error('❌ Element #productGrid not found!');
     return;
   }
   
-  let filtered = activeCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category_slug === activeCategory);
+  let filtered;
+  if (activeCategory === 'all') {
+    filtered = products;
+  } else {
+    // Trouver la catégorie sélectionnée
+    const cat = categories.find(c => c.slug === activeCategory);
+    if (cat && cat.id !== undefined) {
+      filtered = products.filter(p => p.category_id === cat.id);
+    } else {
+      filtered = [];
+    }
+  }
   
-  console.log(`📦 Filtered products (${activeCategory}):`, filtered);
   
   if (filtered.length === 0) {
     container.innerHTML = `
@@ -124,7 +139,6 @@ function renderProducts() {
   
   container.innerHTML = filtered.map((p, index) => createProductCard(p, index)).join('');
   
-  console.log('✅ Products rendered');
   
   // Animate cards
   setTimeout(() => {

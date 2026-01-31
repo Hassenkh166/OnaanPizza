@@ -1,6 +1,8 @@
-document.addEventListener('DOMContentLoaded', function(){
-  // Vérifier l'authentification avant de charger l'interface admin
-  checkAuthentication();
+import { supabase,roleKey,FUNCTIONS } from './supabaseClient.js';
+import { requireAuth } from './checkAuthentication.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await requireAuth();
 
   const listEl = document.getElementById('productsList');
   const form = document.getElementById('productForm');
@@ -29,25 +31,28 @@ document.addEventListener('DOMContentLoaded', function(){
   // Gestionnaire pour le lien de déconnexion
   const logoutLink = document.getElementById('logoutLink');
   if (logoutLink) {
-    logoutLink.addEventListener('click', function(e) {
+    logoutLink.addEventListener('click', async function(e) {
       e.preventDefault();
-      logout();
+      await supabase.auth.signOut();
+      window.location.href = 'login.html';
     });
   }
 
-  /*async function loadCategories(){
-    const res = await fetch('/api/categories');
-    const cats = await res.json();
-    categorySelect.innerHTML = '<option value="">Choisir une catégorie</option>' + cats.map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
-  }*/
   // Charger toutes les catégories et afficher
 async function loadCategories() {
   try {
-   const res = await fetch('/api/categories');
+   const res = await fetch(FUNCTIONS.getCategories, {
+     method: 'GET',
+     headers: {
+       'Content-Type': 'application/json',
+       'apikey': roleKey,
+       'Authorization': `Bearer ${roleKey}`
+     }
+   });
     const cats = await res.json();
     categorySelect.innerHTML = '<option value="">Choisir une catégorie</option>' + cats.map(c => {
       const iconHtml = (c.icon && (c.icon.startsWith('http') || c.icon.startsWith('/') || /\.(png|jpe?g|gif|svg)$/i.test(c.icon))) ? ` <img src="${c.icon}" style="height:18px; width:18px; object-fit:contain; margin-right:6px">` : (c.icon? c.icon+' ' : '');
-      return `<option value="${c.slug}">${iconHtml}${c.name}</option>`;
+      return `<option value="${c.id}">${iconHtml}${c.name}</option>`;
     }).join('');
 
     // Mettre à jour la liste avec boutons éditer / supprimer
@@ -73,7 +78,14 @@ async function loadCategories() {
 }
 
   async function renderList(){
-    const res = await fetch('/api/products');
+    const res = await fetch(FUNCTIONS.getProducts, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': roleKey,
+        'Authorization': `Bearer ${roleKey}`
+      }
+    });
     const products = await res.json();
     listEl.innerHTML = products.map(p => {
       return `
@@ -100,7 +112,14 @@ async function loadCategories() {
 
   async function onEdit(e){
     const id = e.currentTarget.dataset.id;
-    const res = await fetch(`/api/products`);
+    const res = await fetch(FUNCTIONS.getProducts, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': roleKey,
+        'Authorization': `Bearer ${roleKey}`
+      }
+    });
     const products = await res.json();
     const prod = products.find(p => String(p.id) === String(id));
     if (!prod) return;
@@ -109,7 +128,7 @@ async function loadCategories() {
     priceInput.value = prod.price;
     currentImageUrl = prod.img || '';
     descInput.value = prod.description;
-    categorySelect.value = prod.category_slug || '';
+    categorySelect.value = prod.category_id || '';
     saveBtn.textContent = 'Enregistrer les modifications';
     preview.innerHTML = `<img src="${prod.img}" style="max-width:160px; border-radius:8px">`;
     try {
@@ -152,7 +171,14 @@ async function loadCategories() {
       btn.removeEventListener('click', handler);
       confirmModal.hide();
       try {
-        const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${FUNCTIONS.deleteProduct}/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': roleKey,
+            'Authorization': `Bearer ${roleKey}`
+          }
+        });
         if (!res.ok) throw new Error('Échec suppression');
         showToast('Produit supprimé', 'success');
         await renderList();
@@ -205,7 +231,14 @@ async function loadCategories() {
         try {
           const f = categoryIconFile.files[0];
           const fd = new FormData(); fd.append('image', f);
-          const up = await fetch('/api/upload', { method: 'POST', body: fd });
+          const up = await fetch(FUNCTIONS.upload, { 
+            method: 'POST', 
+            body: fd,
+            headers: {
+              'apikey': roleKey,
+              'Authorization': `Bearer ${roleKey}`
+            }
+          });
           if (up.ok) { const jr = await up.json(); icon = jr.url || ''; }
           else { showToast('Erreur téléversement icône', 'danger'); }
         } catch(e) { console.error(e); showToast('Erreur téléversement icône', 'danger'); }
@@ -220,15 +253,43 @@ async function loadCategories() {
       if (editingCategory && editingCategory.value) {
         // update existing
         const oldSlug = editingCategory.value;
-        res = await fetch(`/api/categories/${oldSlug}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, slug, icon }) });
+       
+       
+          // On retire "/pizza" de l'URL pour appeler l'URL exacte de la fonction
+res = await fetch(FUNCTIONS.updateCategory, { 
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'apikey': roleKey,
+    'Authorization': `Bearer ${roleKey}`
+  },
+  // On passe oldSlug (qui contient "pizza") dans le body
+  body: JSON.stringify({ 
+    oldSlug: oldSlug, // ex: "pizza"
+    name: name, 
+    slug: slug, 
+    icon: icon 
+  }) 
+});
+ 
+
       } else {
         // create new
-        res = await fetch('/api/categories', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, slug, icon }) });
+        res = await fetch(`${FUNCTIONS.createCategory}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': roleKey,
+            'Authorization': `Bearer ${roleKey}`
+          },
+          body: JSON.stringify({ name, slug, icon })
+        });
       }
       if (!res.ok) { const err = await res.json().catch(()=>({})); showToast(err.error || 'Erreur création/édition catégorie', 'danger'); return; }
+      const result = await res.json();
       await loadCategories();
-      // auto-select new or updated category
-      categorySelect.value = slug;
+      // auto-select new or updated category using the returned ID
+      categorySelect.value = result.id || result.category?.id || '';
       newCategory.value = '';
       if (categoryIconFile) categoryIconFile.value = '';
       if (categoryIcon) categoryIcon.value = '';
@@ -289,7 +350,14 @@ async function loadCategories() {
       if (fileInput && fileInput.files && fileInput.files.length) {
         const f = fileInput.files[0];
         const fd = new FormData(); fd.append('image', f);
-        const r = await fetch('/api/upload', { method: 'POST', body: fd });
+        const r = await fetch(FUNCTIONS.upload, { 
+          method: 'POST', 
+          body: fd,
+          headers: {
+            'apikey': roleKey,
+            'Authorization': `Bearer ${roleKey}`
+          }
+        });
         const jr = await r.json();
         imageUrl = jr.url;
       }
@@ -314,14 +382,34 @@ async function loadCategories() {
         price: priceVal, 
         img: finalImage, 
         description: descVal, 
-        category_slug: categorySelect.value,
+        category_id: categorySelect.value,
         is_spicy: getFlag('spicy'),
         is_new: getFlag('new'),
         is_popular: getFlag('popular')
       };
+      console.log(" aaa ajouter" + payload);
       let res;
-      if (idVal) res = await fetch(`/api/products/${idVal}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      else res = await fetch('/api/products', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (idVal) {
+        res = await fetch(`${FUNCTIONS.updateProduct}/${idVal}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': roleKey,
+            'Authorization': `Bearer ${roleKey}`
+          },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch(FUNCTIONS.createProduct, { 
+          method: 'POST', 
+          headers: {
+            'Content-Type':'application/json',
+            'apikey': roleKey,
+            'Authorization': `Bearer ${roleKey}`
+          }, 
+          body: JSON.stringify(payload) 
+        });
+      }
       if (!res.ok) { showToast('Erreur enregistrement', 'danger'); }
       else { showToast('Produit enregistré', 'success'); }
       resetForm();
@@ -346,7 +434,14 @@ async function loadCategories() {
       if (action === 'delete') {
         if (!confirm('Supprimer cette catégorie ?')) return;
         try {
-          const delRes = await fetch(`/api/categories/${slug}`, { method: 'DELETE' });
+          const delRes = await fetch(`${FUNCTIONS.deleteCategory}/${slug}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': roleKey,
+              'Authorization': `Bearer ${roleKey}`
+            }
+          });
           if (!delRes.ok) {
             const err = await delRes.json().catch(()=>({}));
             showToast(err.error || 'Erreur suppression catégorie', 'danger');
@@ -357,7 +452,14 @@ async function loadCategories() {
         } catch(err) { console.error(err); showToast('Erreur réseau', 'danger'); }
       } else if (action === 'edit') {
         try {
-          const res = await fetch('/api/categories');
+          const res = await fetch(FUNCTIONS.getCategories, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': roleKey,
+              'Authorization': `Bearer ${roleKey}`
+            }
+          });
           const cats = await res.json();
           const cat = cats.find(c => c.slug === slug);
           if (!cat) return;
@@ -439,41 +541,15 @@ async function loadCategories() {
   }
 
   // Fonctions d'authentification
-  async function checkAuthentication() {
-    const token = localStorage.getItem('admin_token');
-    if (!token) {
-      redirectToLogin();
-      return;
+  // plus de checkAuthentication, tout est géré par requireAuth
+  initializeAdmin();
+
+  async function logout() {
+    if (window.supabase && window.supabase.auth) {
+      await window.supabase.auth.signOut();
     }
-
-    try {
-      const response = await fetch('/api/verify-token', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        localStorage.removeItem('admin_token');
-        redirectToLogin();
-        return;
-      }
-
-      // Token valide, continuer le chargement normal
-      initializeAdmin();
-    } catch (error) {
-      console.error('Erreur vérification authentification:', error);
-      localStorage.removeItem('admin_token');
-      redirectToLogin();
-    }
-  }
-
-  function redirectToLogin() {
-    window.location.href = 'login.html';
-  }
-
-  function logout() {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_token_exp');
     window.location.href = 'login.html';
   }
 
