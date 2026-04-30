@@ -2063,7 +2063,7 @@ main {
   margin-top: auto;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 1rem;
   padding-top: 0.75rem;
   border-top: 1.5px solid rgba(255,255,255,0.13);

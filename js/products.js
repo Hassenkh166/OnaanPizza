@@ -193,13 +193,6 @@ function createProductCard(product, index) {
           ` : ''}
           
           <!-- Note: custom free-form badges are intentionally not displayed; only admin flags control badges -->
-          
-          <!-- Overlay with quick view -->
-          <div class="product-overlay">
-            <button class="btn-quick-view" onclick="openProductDetail(${product.id})">
-              <i class="fas fa-eye"></i> Voir détails
-            </button>
-          </div>
         </div>
         
         <!-- Content -->
@@ -221,9 +214,12 @@ function createProductCard(product, index) {
           <!-- Description -->
           <p class="product-description">${product.description || ''}</p>
           
-          <!-- Footer with price only -->
+          <!-- Footer with price and button -->
           <div class="product-footer">
             <div class="product-price">${product.price || 'Prix non défini'}</div>
+            <button class="btn-add-to-cart-small" onclick="handleAddToCart(${product.id})">
+              <i class="fas fa-shopping-cart"></i>
+            </button>
           </div>
         </div>
         
@@ -301,6 +297,23 @@ window.addEventListener('scroll', () => {
   }
 });
 */
+
+// Add to cart handler
+function handleAddToCart(productId) {
+  const product = products.find(p => p.id === productId);
+  if (!product) {
+    console.error('Product not found:', productId);
+    return;
+  }
+
+  // Add to cart using CartManager
+  CartManager.addToCart({
+    id: product.id,
+    name: product.title,
+    price: product.price,
+    image: product.img
+  }, 1);
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', loadMenu);

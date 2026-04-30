@@ -17,6 +17,7 @@
     <!-- Fonts + custom styles -->
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/cart.css">
     <!-- FontAwesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" href="/assets/images/NewLogo.png">
@@ -334,10 +335,74 @@
       </div>
     </div>
 
+    <!-- CART DRAWER/SIDEBAR -->
+    <div id="cartDrawer" class="cart-drawer">
+      <!-- Backdrop pour fermer -->
+      <div class="cart-drawer-backdrop" id="cartBackdrop"></div>
+
+      <!-- Contenu du drawer -->
+      <div class="cart-drawer-content">
+        <!-- Header -->
+        <div class="cart-drawer-header">
+          <h3 class="cart-drawer-title">Mon Panier</h3>
+          <button class="cart-drawer-close" id="cartDrawerClose" aria-label="Fermer">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Items container -->
+        <div class="cart-items-container" id="cartItemsContainer">
+          <!-- Carte du panier s'affichera ici -->
+        </div>
+
+        <!-- Total -->
+        <div class="cart-drawer-total">
+          <div class="total-row">
+            <span class="total-label">Total :</span>
+            <span class="total-value" id="cartTotal">0.00 €</span>
+          </div>
+        </div>
+
+        <!-- Validation form -->
+        <form id="cartCheckoutForm" class="cart-checkout-form">
+          <div class="form-group mb-3">
+            <label for="phoneInput" class="form-label">Numéro de téléphone <span class="text-danger">*</span></label>
+            <input 
+              type="tel" 
+              id="phoneInput" 
+              name="phone" 
+              class="form-control" 
+              placeholder="+33 1 23 45 67 89"
+              pattern="[0-9\s\-\+\(\)]+"
+              required>
+            <small class="form-text text-muted">Nous utiliserons ce numéro pour confirmer votre commande</small>
+          </div>
+
+          <button type="submit" class="btn-validate-order w-100">
+            <i class="fas fa-check-circle me-2"></i>Valider la commande
+          </button>
+        </form>
+
+        <!-- Empty cart message -->
+        <div id="cartEmptyMessage" class="cart-empty-message d-none">
+          <i class="fas fa-shopping-cart"></i>
+          <p>Votre panier est vide</p>
+          <small>Ajoutez des produits pour continuer</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bouton flottant panier -->
+    <button id="cartBtn" class="floating-cart-btn" aria-label="Panier">
+      <i class="fas fa-shopping-cart"></i>
+      <span id="cartBadge" class="cart-badge d-none">0</span>
+    </button>
+
     <div id="overlay" class="menu-overlay"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="js/cart.js"></script>
     <script src="js/main.js"></script>
     <script src="js/products.js"></script>
     <script src="js/reviews.js"></script>

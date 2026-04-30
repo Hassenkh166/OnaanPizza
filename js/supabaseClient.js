@@ -20,6 +20,7 @@ export const FUNCTIONS = {
   deletePromotion: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/delete-promotion',
   upload: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/upload',
   updateConfig: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/update-config',
+  createOrder: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/create-order',
   // ajoute ici toutes tes fonctions
 };
 

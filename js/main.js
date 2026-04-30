@@ -1,25 +1,36 @@
+// Global variables for Supabase functions
+let FUNCTIONS = null;
+let roleKey = null;
+
 // Smooth scroll for anchor links and navbar behavior
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Import FUNCTIONS and roleKey immediately for newsletter
+    const result = await import('./supabaseClient.js');
+    FUNCTIONS = result.FUNCTIONS;
+    roleKey = result.roleKey;
+    
+    // Load logo immediately from local assets (don't wait for config)
+    const logoElements = document.querySelectorAll('.restaurant-logo');
+    logoElements.forEach(el => {
+      if (el.tagName === 'IMG') {
+        el.src = 'assets/images/logo.png';
+      } else {
+        el.style.backgroundImage = 'url(\'assets/images/logo.png\')';
+      }
+    });
+
+    const heroLogoElements = document.querySelectorAll('.hero-logo');
+    heroLogoElements.forEach(el => {
+      if (el.tagName === 'IMG') {
+        el.src = 'assets/images/logo.png';
+      } else {
+        el.style.backgroundImage = 'url(\'assets/images/logo.png\')';
+      }
+    });
+
     initSite();
 
-  // Pre-insert spinners so a loader is visible immediately while config loads
-  function ensureInitialLogoSpinners() {
-    const all = document.querySelectorAll('.restaurant-logo, .hero-logo');
-    all.forEach(el => {
-      if (!el) return;
-      // avoid duplicating
-      const existing = el.parentNode && el.parentNode.querySelector('.logo-spinner');
-      if (existing) return;
-      // create spinner and insert after element
-      const spinner = document.createElement('span');
-      spinner.className = 'logo-spinner';
-      el.classList.add('hidden');
-      el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-    });
-  }
-  ensureInitialLogoSpinners();
-
-  /* Newsletter modal: inject enhanced Centre Glass modal with accessibility */
+  // Smooth scroll for links with .scroll-link
   let _newsletterPreviouslyFocused = null;
   let _newsletterKeyHandler = null;
 
@@ -182,22 +193,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // helper to start slideshow
   function startSlideshow(config) {
     const container = document.querySelector('.hero-slideshow');
-    const data = config.hero_images || [];
-
-    if (Array.isArray(data) && data.length) {
-      container.innerHTML = data
-        .map(url => {
-          const isVideo = /\.(mp4|webm)$/i.test(url);
-          if (isVideo) {
-            return `<video class="slide" autoplay muted loop playsinline style="object-fit: cover;" poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMTExIi8+PC9zdmc+"><source src="${url}" type="video/mp4"></video>`;
-          } else {
-            return `<div class="slide" style="background-image:url('${url}')"></div>`;
-          }
-        })
-        .join('');
-    } else {
-      container.innerHTML = `<div class="slide active" style="background:#111"></div>`;
-    }
+    
+    // Use local hero video by default - no need to wait for config
+    container.innerHTML = `<video class="slide active" autoplay muted loop playsinline style="object-fit: cover;" poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMTExIi8+PC9zdmc+"><source src="assets/images/hero.mp4" type="video/mp4"></video>`;
 
     const slides = container.querySelectorAll('.slide');
     if (!slides.length) return;
@@ -219,68 +217,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const nameElements = document.querySelectorAll('.restaurant-name');
       nameElements.forEach(el => el.textContent = config.restaurant_name || 'O\'naan Pizza');
       
-      // Apply logo (only use config.logo; show simple circular spinner while loading)
-      const logoElements = document.querySelectorAll('.restaurant-logo');
-      logoElements.forEach(el => {
-        // remove any existing spinner
-        const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
-        if (existingSpinner) existingSpinner.remove();
-        if (!config.logo) {
-          if (el.tagName === 'IMG') el.removeAttribute('src');
-          else el.style.backgroundImage = '';
-          el.classList.remove('hidden');
-          return;
-        }
-        if (el.tagName === 'IMG') {
-          // hide image and show spinner
-          el.classList.add('hidden');
-          const spinner = document.createElement('span');
-          spinner.className = 'logo-spinner';
-          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-          el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
-          el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
-          el.src = config.logo;
-        } else {
-          // background image case: preload
-          const spinner = document.createElement('span');
-          spinner.className = 'logo-spinner';
-          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-          const tmp = new Image();
-          tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
-          tmp.onerror = () => { spinner.remove(); };
-          tmp.src = config.logo;
-        }
-      });
-
-      // Also ensure the hero logo (large logo in hero section) uses the same config.logo with spinner
-      const heroLogoElements = document.querySelectorAll('.hero-logo');
-      heroLogoElements.forEach(el => {
-        const existingSpinner = el.parentNode && el.parentNode.querySelector('.logo-spinner');
-        if (existingSpinner) existingSpinner.remove();
-        if (!config.logo) {
-          if (el.tagName === 'IMG') el.removeAttribute('src');
-          else el.style.backgroundImage = '';
-          el.classList.remove('hidden');
-          return;
-        }
-        if (el.tagName === 'IMG') {
-          el.classList.add('hidden');
-          const spinner = document.createElement('span');
-          spinner.className = 'logo-spinner';
-          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-          el.onload = () => { el.classList.remove('hidden'); spinner.remove(); };
-          el.onerror = () => { el.classList.remove('hidden'); spinner.remove(); };
-          el.src = config.logo;
-        } else {
-          const spinner = document.createElement('span');
-          spinner.className = 'logo-spinner';
-          el.parentNode && el.parentNode.insertBefore(spinner, el.nextSibling);
-          const tmp = new Image();
-          tmp.onload = () => { el.style.backgroundImage = `url('${config.logo}')`; spinner.remove(); };
-          tmp.onerror = () => { spinner.remove(); };
-          tmp.src = config.logo;
-        }
-      });
+      // Logo is already loaded from local assets immediately on DOMContentLoaded
+      // No need to load it again here
       
       // Apply contact info
       const addressEl = document.querySelector('.contact-address');
@@ -306,8 +244,9 @@ document.addEventListener('DOMContentLoaded', function() {
   let cachedConfig = null;
 
   async function initSite() {
-     const { FUNCTIONS, supabaseKey } = await import('./supabaseClient.js');
     try {
+      // Get supabaseKey from the imported supabaseClient module
+      const { supabaseKey } = await import('./supabaseClient.js');
       const res = await fetch(FUNCTIONS.getConfig, {
         method: 'GET',
         headers: {
