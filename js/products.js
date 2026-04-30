@@ -249,31 +249,39 @@ function openCustomize(productId) {
 }
 
 // Add to cart (à implémenter)
-function addToCart(productId) {
+function addToCart(productId, event) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
   
-  // TODO: Implement cart system
-  // For now, show a success toast
-  showToast(`${product.title} ajouté au panier 🎉`, 'success');
+  // Get the button that was clicked
+  const button = event ? event.target.closest('button') : null;
+  showCheckBadge(button);
 }
 
-// Simple toast notification
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast-notification toast-${type}`;
-  toast.innerHTML = `
-    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
-    <span>${message}</span>
-  `;
+// Floating check badge animation
+function showCheckBadge(button) {
+  if (!button) return;
   
-  document.body.appendChild(toast);
+  const badge = document.createElement('div');
+  badge.className = 'check-badge';
+  badge.innerHTML = '<i class="fas fa-check"></i>';
   
-  setTimeout(() => toast.classList.add('toast-show'), 100);
+  // Position the badge at the button
+  const rect = button.getBoundingClientRect();
+  badge.style.position = 'fixed';
+  badge.style.left = (rect.left + rect.width / 2) + 'px';
+  badge.style.top = (rect.top - 10) + 'px';
+  
+  document.body.appendChild(badge);
+  
+  // Trigger animation
+  setTimeout(() => badge.classList.add('check-badge-show'), 10);
+  
+  // Remove after animation
   setTimeout(() => {
-    toast.classList.remove('toast-show');
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+    badge.classList.remove('check-badge-show');
+    setTimeout(() => badge.remove(), 500);
+  }, 1500);
 }
 
 // Sticky filters on scroll - DISABLED (causing glitch)
@@ -313,7 +321,14 @@ function handleAddToCart(productId) {
     price: product.price,
     image: product.img
   }, 1);
+  
+  // Show check badge - get the button that was clicked
+  const button = event ? event.target.closest('button') : null;
+  showCheckBadge(button);
 }
+
+// Make function globally accessible
+window.handleAddToCart = handleAddToCart;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', loadMenu);

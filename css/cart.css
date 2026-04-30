@@ -462,6 +462,97 @@
   color: #999;
 }
 
+/* ===== LOYALTY SYSTEM ===== */
+.loyalty-section {
+  background: linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 10px 0;
+  border-left: 4px solid #FFD700;
+}
+
+.loyalty-status h6 {
+  color: #E53935;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.loyalty-info {
+  display: grid;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0e6d2;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: #666;
+  font-weight: 600;
+}
+
+.info-row span:last-child {
+  color: #1a1a1a;
+  font-weight: 700;
+  color: #E53935;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #f0e6d2;
+}
+
+.form-check:hover {
+  background: #fffbf0;
+  border-color: #FFD700;
+}
+
+.form-check-input {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  cursor: pointer;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  accent-color: #E53935;
+}
+
+.form-check-label {
+  margin: 0;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.discount-row {
+  margin-top: 10px;
+  padding: 10px;
+  background: #e8f5e9;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+.discount-value {
+  color: #2e7d32;
+}
+
 /* Responsive */
 @media (max-width: 576px) {
   .cart-drawer-content {

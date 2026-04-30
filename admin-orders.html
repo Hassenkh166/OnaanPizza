@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Commandes - O'naan Pizza Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/admin-styles.css">
+    <link rel="stylesheet" href="css/admin-orders-styles.css">
+    <link rel="icon" href="/assets/images/NewLogo.png">
+</head>
+<body class="admin-body">
+    <!-- Mobile Hamburger Button -->
+    <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle menu">
+      <span></span>
+    </button>
+    <!-- Mobile Overlay -->
+    <div class="admin-overlay" id="adminOverlay"></div>
+
+    <div class="admin-container">
+    <!-- Sidebar -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="admin-logo">
+                <h3>O'naan Pizza</h3>
+                <p>Administration</p>
+            </div>
+            <ul class="admin-nav">
+                <li class="admin-nav-item">
+                    <a href="admin.html" class="admin-nav-link">
+                        <i class="fas fa-pizza-slice"></i>
+                        <span>Produits</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item">
+                    <a href="daily-specials.html" class="admin-nav-link">
+                        <i class="fas fa-star"></i>
+                        <span>Promotions</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item">
+                    <a href="site-config.html" class="admin-nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Configuration</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item">
+                    <a href="admin-newsletter.html" class="admin-nav-link">
+                        <i class="fas fa-envelope"></i>
+                        <span>Newsletter</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item">
+                    <a href="admin-orders.html" class="admin-nav-link active">
+                        <i class="fas fa-shopping-bag"></i>
+                        <span>Commandes</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item admin-nav-sep">
+                    <a href="index.html" target="_blank" class="admin-nav-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>Voir le site</span>
+                    </a>
+                </li>
+                <li class="admin-nav-item admin-nav-sep">
+                    <a href="#" id="logoutLink" class="admin-nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Déconnexion</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+            </ul>
+        </aside>
+
+        <!-- Main content -->
+        <main class="admin-main">
+            <header class="admin-header">
+                <h1>Gestion des Commandes</h1>
+            </header>
+
+            <div class="admin-content">
+                <!-- Filter tabs -->
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-status="all">
+                        <i class="fas fa-list me-2"></i>Toutes
+                    </button>
+                    <button class="filter-btn" data-status="pending">
+                        <i class="fas fa-clock me-2"></i>En attente
+                    </button>
+                    <button class="filter-btn" data-status="preparing">
+                        <i class="fas fa-utensils me-2"></i>En préparation
+                    </button>
+                    <button class="filter-btn" data-status="delivered">
+                        <i class="fas fa-check-circle me-2"></i>Terminé
+                    </button>
+                </div>
+
+                <!-- Orders list -->
+                <div id="ordersList">
+                    <!-- Commandes s'affichent ici -->
+                </div>
+
+                <!-- Empty message -->
+                <div id="emptyMessage" class="empty-message d-none">
+                    <i class="fas fa-inbox"></i>
+                    <p>Aucune commande</p>
+                    <small>Les commandes apparaîtront ici</small>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/checkAuthentication.js"></script>
+    <script type="module" src="js/admin-orders.js"></script>
+</body>
+</html>

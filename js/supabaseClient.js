@@ -21,6 +21,8 @@ export const FUNCTIONS = {
   upload: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/upload',
   updateConfig: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/update-config',
   createOrder: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/create-order',
+  getLoyalty: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/get-loyalty',
+  updateOrderStatus: 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/update-order-status',
   // ajoute ici toutes tes fonctions
 };
 

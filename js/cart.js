@@ -267,7 +267,10 @@ const CartManager = (() => {
     updateBadge,
     init,
     openCartDrawer: () => openCartDrawer(),
-    closeCartDrawer: () => closeCartDrawer()
+    closeCartDrawer: () => closeCartDrawer(),
+    // Loyalty functions - no longer used on client side
+    // setUseFreeProduct: (use) => { ... },
+    // getUseFreeProduct: () => { ... }
   };
 })();
 
@@ -441,8 +444,6 @@ async function handleCheckoutSubmit(e) {
     const result = await response.json();
     console.log('Order created:', result);
 
-    // Succès
-    alert('✅ Commande validée ! Nous vous appellerons bientôt au ' + phone);
     CartManager.clearCart();
     CartManager.updateBadge();
     closeCartDrawer();
@@ -457,11 +458,27 @@ async function handleCheckoutSubmit(e) {
   }
 }
 
+// ===== LOYALTY FUNCTIONS - COMMENTED OUT (Only used by admin) =====
+// async function fetchLoyaltyStatus(phone) {
+//   ...
+// }
+// function displayLoyaltyStatus(loyalty) {
+//   ...
+// }
+// function hideLoyaltyStatus() {
+//   ...
+// }
+// function setupLoyaltyEvents() {
+//   ...
+// }
+
 // Initialize cart when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     CartManager.init();
+    setupDrawerEvents();
   });
 } else {
   CartManager.init();
+  setupDrawerEvents();
 }

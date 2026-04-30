@@ -18,7 +18,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { phone_number, items, total } = await req.json()
+    const { phone_number, items, total, use_free_product } = await req.json()
 
     // Validation
     if (!phone_number || !items || !total) {
@@ -59,8 +59,9 @@ serve(async (req) => {
 
     console.log('Order created:', data)
 
-    // TODO: Send notification to admin (email, WhatsApp, etc.)
-    // TODO: Send confirmation SMS/WhatsApp to customer
+    // === LOYALTY SYSTEM NOTE ===
+    // Loyalty points are now updated when admin changes order status to "preparing"
+    // This is handled by the update-order-status Edge Function
 
     return new Response(
       JSON.stringify({
