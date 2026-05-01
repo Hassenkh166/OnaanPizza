@@ -84,8 +84,6 @@ serve(async (req) => {
 
         let currentTotalSpent = 0
         let currentPointsBalance = 0
-        let currentFreeProductsEarned = 0
-        let currentFreeProductsUsed = 0
 
         if (loyaltyData) {
           // Check if last order was more than 14 days ago
@@ -95,16 +93,12 @@ serve(async (req) => {
 
           currentTotalSpent = parseFloat(loyaltyData.total_spent)
           currentPointsBalance = parseFloat(loyaltyData.points_balance)
-          currentFreeProductsEarned = loyaltyData.free_products_earned
-          currentFreeProductsUsed = loyaltyData.free_products_used
 
           // Reset loyalty if more than 14 days have passed
           if (daysSinceLastOrder > RESET_DAYS) {
             console.log(`Resetting loyalty for ${phone_number}: ${daysSinceLastOrder.toFixed(1)} days since last order`)
             currentTotalSpent = 0
             currentPointsBalance = 0
-            currentFreeProductsEarned = 0
-            currentFreeProductsUsed = 0
           }
         }
 
@@ -112,9 +106,8 @@ serve(async (req) => {
         const newTotalSpent = currentTotalSpent + order_total
         const newPointsBalance = currentPointsBalance + order_total
 
-        // Calculate free products earned
-        const productsEarned = Math.floor(newPointsBalance / LOYALTY_THRESHOLD)
-        const newFreeProductsEarned = currentFreeProductsEarned + productsEarned
+        // Calculate free products earned THIS TIME (based on total new balance)
+        const productsToGiveNow = Math.floor(newPointsBalance / LOYALTY_THRESHOLD)
 
         // Reset points balance after earning a product
         const remainingBalance = newPointsBalance % LOYALTY_THRESHOLD
@@ -126,8 +119,6 @@ serve(async (req) => {
             .update({
               total_spent: newTotalSpent,
               points_balance: remainingBalance,
-              free_products_earned: newFreeProductsEarned,
-              free_products_used: currentFreeProductsUsed,
               last_order_date: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
@@ -144,8 +135,6 @@ serve(async (req) => {
               phone_number,
               total_spent: newTotalSpent,
               points_balance: remainingBalance,
-              free_products_earned: newFreeProductsEarned,
-              free_products_used: 0,
               last_order_date: new Date().toISOString(),
             }])
 
@@ -158,9 +147,7 @@ serve(async (req) => {
           phone_number,
           total_spent: newTotalSpent,
           points_balance: remainingBalance,
-          free_products_earned: newFreeProductsEarned,
-          free_products_used: currentFreeProductsUsed,
-          new_free_product: productsEarned > 0,
+          products_to_give_now: productsToGiveNow,
           free_product_value: FREE_PRODUCT_VALUE,
           current_order_total: order_total,
         }

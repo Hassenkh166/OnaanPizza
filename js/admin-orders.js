@@ -210,8 +210,8 @@ async function updateOrderStatus(orderId, newStatus) {
 
         renderOrders();
         
-        // Show loyalty modal ONLY if a new product was earned
-        if (newStatus === 'preparing' && result.loyalty && result.loyalty.new_free_product) {
+        // Show loyalty modal when status changes to "preparing"
+        if (newStatus === 'preparing' && result.loyalty) {
             showLoyaltyModal(result.loyalty);
         } else {
             // Show confirmation message
@@ -236,8 +236,8 @@ function showLoyaltyModal(loyaltyInfo) {
     
     const totalSpent = parseFloat(loyaltyInfo.total_spent).toFixed(2);
     const pointsBalance = parseFloat(loyaltyInfo.points_balance).toFixed(2);
-    const productsToGive = Math.floor(pointsBalance / 100);
-    const newFreeProduct = loyaltyInfo.new_free_product;
+    const productsToGive = loyaltyInfo.products_to_give_now || 0;
+    const newFreeProduct = productsToGive > 0;
     
     modal.innerHTML = `
         <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
