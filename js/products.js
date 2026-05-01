@@ -329,6 +329,7 @@ function handleAddToCart(productId) {
 
 // Make function globally accessible
 window.handleAddToCart = handleAddToCart;
+window.filterProducts = filterProducts;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', loadMenu);
