@@ -69,7 +69,6 @@ serve(async (req) => {
     if (new_status === 'preparing') {
       const LOYALTY_THRESHOLD = 100 // 100€ for free product
       const FREE_PRODUCT_VALUE = 10 // Free product worth ~10€
-      const RESET_DAYS = 14 // Reset loyalty if last order > 14 days ago
 
       try {
         const phone_number = order.phone_number
@@ -86,20 +85,8 @@ serve(async (req) => {
         let currentPointsBalance = 0
 
         if (loyaltyData) {
-          // Check if last order was more than 14 days ago
-          const lastOrderDate = new Date(loyaltyData.last_order_date)
-          const now = new Date()
-          const daysSinceLastOrder = (now.getTime() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24)
-
           currentTotalSpent = parseFloat(loyaltyData.total_spent)
           currentPointsBalance = parseFloat(loyaltyData.points_balance)
-
-          // Reset loyalty if more than 14 days have passed
-          if (daysSinceLastOrder > RESET_DAYS) {
-            console.log(`Resetting loyalty for ${phone_number}: ${daysSinceLastOrder.toFixed(1)} days since last order`)
-            currentTotalSpent = 0
-            currentPointsBalance = 0
-          }
         }
 
         // Update loyalty with current order

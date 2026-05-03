@@ -19,16 +19,18 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const { phone_number, items, total, use_free_product } = await req.json()
+    const orderItems = Array.isArray(items) ? items : items?.items
+    const itemsPayload = Array.isArray(items) ? items : items || { items: [] }
 
     // Validation
-    if (!phone_number || !items || !total) {
+    if (!phone_number || !orderItems || !total) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    if (items.length === 0) {
+    if (orderItems.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Cart is empty' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -41,7 +43,7 @@ serve(async (req) => {
       .insert([
         {
           phone_number,
-          items: JSON.stringify(items),
+          items: JSON.stringify(itemsPayload),
           total,
           status: 'pending',
           created_at: new Date().toISOString(),

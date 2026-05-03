@@ -27,30 +27,22 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
-    const id = pathParts[pathParts.length - 1] // Get the last part of the path
+    const id = pathParts[pathParts.length - 1]
 
-    // For invoke calls, check method in body
-    let requestMethod = req.method
+    // Read body once at the beginning
     let body: any = {}
-    if (req.method === 'POST') {
-      try {
-        body = await req.json()
-        if (body.method) {
-          requestMethod = body.method.toUpperCase()
-          // Reconstruct request with method-specific body
-          if (requestMethod !== 'POST') {
-            // For non-POST methods, the body contains the actual data
-          }
-        }
-      } catch (e) {
-        // Not JSON, continue with normal flow
+    let requestMethod = req.method
+    try {
+      body = await req.json()
+      if (body.method) {
+        requestMethod = body.method.toUpperCase()
       }
+    } catch (e) {
+      // Not JSON or empty body, continue with normal flow
     }
 
     if (requestMethod === 'GET') {
       // Public read access - no auth required for listing promotions
-      // Check if id is provided in body (for invoke calls)
-      const body = await req.json().catch(() => ({}))
       const requestId = body.id || (id && id !== 'promotions' ? id : null)
 
       if (requestId) {
@@ -114,7 +106,7 @@ Deno.serve(async (req) => {
         })
       }
 
-      const { title, subtitle, badge_text, image_url } = await req.json()
+      const { title, subtitle, badge_text, image_url } = body
       if (!title || !subtitle) {
         return new Response(JSON.stringify({ error: 'Title and subtitle required' }), {
           status: 400,
@@ -159,7 +151,6 @@ Deno.serve(async (req) => {
         })
       }
 
-      const body = await req.json()
       const { id: requestId, title, subtitle, badge_text, image_url } = body
 
       if (!requestId) {
@@ -226,7 +217,6 @@ Deno.serve(async (req) => {
         })
       }
 
-      const body = await req.json()
       const { id: requestId } = body
 
       if (!requestId) {

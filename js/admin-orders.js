@@ -3,14 +3,14 @@
  * Affiche et gère les commandes
  */
 
+import { supabase, roleKey, FUNCTIONS } from './supabaseClient.js';
+
 let allOrders = [];
 let currentFilter = 'all';
 
 // Récupérer les commandes depuis Supabase
 async function loadOrders() {
     try {
-        const { FUNCTIONS, roleKey } = await import('./supabaseClient.js');
-        
         // Utiliser l'API Supabase pour récupérer les commandes
         // On utiliser un Edge Function ou directement via Supabase client
         // Pour simplifier, on va utiliser une approche directe
@@ -91,6 +91,8 @@ function renderOrders() {
                 </div>
             </div>
 
+            ${renderOrderFulfillment(order.items)}
+
             <!-- Items -->
             <div class="order-items">
                 <div class="order-items-title">Articles commandés</div>
@@ -123,7 +125,8 @@ function renderOrders() {
 // Afficher les articles d'une commande
 function renderOrderItems(itemsJson) {
     try {
-        const items = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
+        const parsed = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
+        const items = Array.isArray(parsed) ? parsed : (parsed?.items || []);
         
         return items.map(item => `
             <div class="order-item">
@@ -137,6 +140,48 @@ function renderOrderItems(itemsJson) {
     } catch (e) {
         console.error('Error parsing items:', e);
         return '<span style="color: #999;">Erreur lors du chargement des articles</span>';
+    }
+}
+
+function renderOrderFulfillment(itemsJson) {
+    try {
+        const parsed = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
+        const meta = Array.isArray(parsed) ? null : (parsed?.meta || null);
+
+        if (!meta || !meta.order_type) {
+            return '';
+        }
+
+        const labels = {
+            pickup: 'Sur place',
+            takeaway: 'À emporter',
+            delivery: 'Livraison à domicile',
+        };
+
+        return `
+            <div class="order-fulfillment">
+                <div class="info-row">
+                    <span class="info-label">🧾 Mode</span>
+                    <span class="info-value">${labels[meta.order_type] || meta.order_type}</span>
+                </div>
+                ${meta.order_type === 'delivery' ? `
+                    <div class="info-row">
+                        <span class="info-label">📍 Adresse</span>
+                        <span class="info-value">${meta.delivery_address || 'Non renseignée'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">📏 Distance</span>
+                        <span class="info-value">${typeof meta.delivery_distance_km === 'number' ? meta.delivery_distance_km.toFixed(2) + ' km' : 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">🚚 Frais</span>
+                        <span class="info-value">${typeof meta.delivery_fee === 'number' ? meta.delivery_fee.toFixed(2) + ' €' : '0.00 €'}</span>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    } catch (e) {
+        return '';
     }
 }
 
@@ -171,26 +216,22 @@ function renderStatusButtons(order) {
 // Mettre à jour le status d'une commande
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        const { roleKey, FUNCTIONS } = await import('./supabaseClient.js');
-        
         console.log('Updating order:', { orderId, newStatus }); // Debug
         
         // Call the update-order-status Edge Function
-        const response = await fetch(
-            FUNCTIONS.updateOrderStatus,
-            {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': roleKey,
-                    'Authorization': `Bearer ${roleKey}`,
-                },
-                body: JSON.stringify({
-                    order_id: parseInt(orderId),
-                    new_status: newStatus
-                })
-            }
-        );
+        const updateOrderStatusUrl = 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/update-order-status';
+        const response = await fetch(updateOrderStatusUrl, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': roleKey,
+                'Authorization': `Bearer ${roleKey}`,
+            },
+            body: JSON.stringify({
+                order_id: parseInt(orderId),
+                new_status: newStatus
+            })
+        });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -390,9 +431,14 @@ if (hamburger && sidebar) {
 }
 
 // Logout
-document.getElementById('logoutLink')?.addEventListener('click', (e) => {
+document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    // Implémenter la déconnexion si nécessaire
+    try {
+        const { supabase } = await import('./supabaseClient.js');
+        await supabase.auth.signOut();
+    } catch (error) {
+        console.error('Error signing out:', error);
+    }
     window.location.href = 'login.html';
 });
 

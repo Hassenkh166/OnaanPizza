@@ -274,6 +274,26 @@ const CartManager = (() => {
   };
 })();
 
+const DELIVERY_RULES = {
+  minimumSubtotal: 20,
+  freeDeliveryThreshold: 30,
+  deliveryFee: 5,
+  maxDistanceKm: 2,
+};
+
+const RESTAURANT_ADDRESS = "106 Cours de l'Argonne, 33800 Bordeaux, France";
+// Plus Code trouvé par l'utilisateur (Google Maps): RCGF+VJ Bordeaux
+const RESTAURANT_PLUS_CODE = 'RCGF+VJ Bordeaux';
+// Fallback coordinates (approximate) to use if Nominatim fails
+const RESTAURANT_COORDS = { lat: 44.8573, lon: -0.5671 };
+
+let currentOrderType = 'pickup';
+let restaurantLocationCache = null;
+// Autocomplete state
+let addressSuggestionsTimer = null;
+let lastSelectedAddressLocation = null; // { lat, lon }
+let lastSelectedAddressString = '';
+
 /**
  * DRAWER/BOTTOM SHEET MANAGEMENT
  */
@@ -350,8 +370,7 @@ function renderCartItems() {
     </div>
   `).join('');
 
-  // Update total
-  document.getElementById('cartTotal').textContent = total.toFixed(2) + ' €';
+  updateDeliveryUI();
 }
 
 function updateItemQuantity(productId, newQty) {
@@ -386,13 +405,272 @@ function setupDrawerEvents() {
   if (form) {
     form.removeEventListener('submit', handleCheckoutSubmit);
     form.addEventListener('submit', handleCheckoutSubmit);
+
+    if (!form.dataset.deliveryBound) {
+      form.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-order-type]');
+        if (!button) return;
+        event.preventDefault();
+        setOrderType(button.dataset.orderType);
+      });
+
+      form.addEventListener('input', (event) => {
+        if (event.target && event.target.id === 'deliveryAddress') {
+          // Clear previous selection when user types
+          lastSelectedAddressLocation = null;
+          lastSelectedAddressString = '';
+          handleAddressInput(event.target.value);
+          updateDeliveryUI();
+        }
+      });
+
+      form.dataset.deliveryBound = 'true';
+    }
   }
+}
+
+function setOrderType(orderType) {
+  currentOrderType = orderType || 'pickup';
+  updateDeliveryUI();
+}
+
+function getDeliveryFee(subtotal) {
+  if (currentOrderType !== 'delivery') return 0;
+  if (subtotal < DELIVERY_RULES.minimumSubtotal) return null;
+  return subtotal >= DELIVERY_RULES.freeDeliveryThreshold ? 0 : DELIVERY_RULES.deliveryFee;
+}
+
+function formatCurrency(value) {
+  return `${Number(value || 0).toFixed(2)} €`;
+}
+
+function haversineDistanceKm(lat1, lon1, lat2, lon2) {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function geocodeAddress(address) {
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(address)}`;
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Impossible de vérifier l’adresse pour le moment');
+  }
+
+  const results = await response.json();
+  if (!results || !results.length) return null;
+
+  return {
+    lat: parseFloat(results[0].lat),
+    lon: parseFloat(results[0].lon),
+    displayName: results[0].display_name || address,
+  };
+}
+
+// --- Address autocomplete helpers ---
+async function fetchAddressSuggestions(query) {
+  if (!query || !query.trim()) return [];
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(query + ', Bordeaux, France')}`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data || []).map(item => {
+    const addr = item.address || {};
+    // Build compact label: "<house_number> <road>, <postcode> <city>"
+    let street = '';
+    if (addr.house_number && addr.road) street = `${addr.house_number} ${addr.road}`;
+    else if (addr.road) street = addr.road;
+    else if (addr.pedestrian) street = addr.pedestrian;
+
+    const city = addr.city || addr.town || addr.village || addr.county || '';
+    const postcode = addr.postcode || '';
+
+    let labelParts = [];
+    if (street) labelParts.push(street);
+    if (postcode || city) labelParts.push(`${postcode}${postcode && city ? ' ' : ''}${city}`);
+
+    const label = labelParts.length ? labelParts.join(', ') : (item.display_name || '').split(',').slice(0,3).join(', ');
+
+    return { label, display_name: item.display_name, lat: parseFloat(item.lat), lon: parseFloat(item.lon), rawAddress: addr };
+  });
+}
+
+function renderAddressSuggestions(results) {
+  const container = document.getElementById('addressSuggestions');
+  const input = document.getElementById('deliveryAddress');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!results || !results.length) return;
+
+  results.forEach(r => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'list-group-item list-group-item-action';
+    el.textContent = r.label || r.display_name;
+    el.addEventListener('click', () => {
+      if (input) input.value = r.label || r.display_name;
+      lastSelectedAddressLocation = { lat: r.lat, lon: r.lon };
+      lastSelectedAddressString = r.label || r.display_name;
+      clearAddressSuggestions();
+      updateDeliveryUI();
+    });
+    container.appendChild(el);
+  });
+}
+
+function clearAddressSuggestions() {
+  const container = document.getElementById('addressSuggestions');
+  if (container) container.innerHTML = '';
+}
+
+function handleAddressInput(value) {
+  clearAddressSuggestions();
+  if (addressSuggestionsTimer) clearTimeout(addressSuggestionsTimer);
+  if (!value || !value.trim()) return;
+  addressSuggestionsTimer = setTimeout(async () => {
+    try {
+      const results = await fetchAddressSuggestions(value);
+      renderAddressSuggestions(results);
+    } catch (err) {
+      console.warn('Address suggestion error', err);
+    }
+  }, 300);
+}
+
+
+async function getRestaurantLocation() {
+  if (restaurantLocationCache) {
+    return restaurantLocationCache;
+  }
+
+  // Try several variants to increase chance of finding the place on Nominatim
+  const candidates = [
+    RESTAURANT_ADDRESS,
+    // try without abbreviations and with country context
+    RESTAURANT_ADDRESS.replace(/Cours?/i, 'Cours'),
+    RESTAURANT_ADDRESS + ', France',
+    RESTAURANT_PLUS_CODE,
+  ];
+
+  for (const q of candidates) {
+    try {
+      if (!q || !q.trim()) continue;
+      const loc = await geocodeAddress(q);
+      if (loc) {
+        restaurantLocationCache = loc;
+        return loc;
+      }
+    } catch (err) {
+      console.warn('Geocode attempt failed for', q, err?.message || err);
+    }
+  }
+
+  // As a last resort return hardcoded coords (pre-approved fallback)
+  console.warn('Falling back to hardcoded restaurant coordinates');
+  restaurantLocationCache = { lat: RESTAURANT_COORDS.lat, lon: RESTAURANT_COORDS.lon, displayName: RESTAURANT_ADDRESS };
+  return restaurantLocationCache;
+}
+
+function updateDeliveryUI() {
+  const total = CartManager.getTotal();
+  const deliveryAddressGroup = document.getElementById('deliveryAddressGroup');
+  const deliveryAddressInput = document.getElementById('deliveryAddress');
+  const deliveryInfoBox = document.getElementById('deliveryInfoBox');
+  const deliverySummaryBox = document.getElementById('deliverySummaryBox');
+  const submitBtn = document.querySelector('.btn-validate-order');
+  const orderTypeButtons = document.querySelectorAll('[data-order-type]');
+  const cartTotalEl = document.getElementById('cartTotal');
+
+  orderTypeButtons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.orderType === currentOrderType);
+  });
+
+  if (!deliveryAddressGroup || !deliveryAddressInput || !deliveryInfoBox || !deliverySummaryBox || !submitBtn || !cartTotalEl) {
+    return;
+  }
+
+  if (CartManager.getItems().length === 0) {
+    deliveryAddressGroup.classList.add('d-none');
+    deliverySummaryBox.classList.add('d-none');
+    deliveryInfoBox.classList.add('d-none');
+    submitBtn.disabled = false;
+    cartTotalEl.textContent = formatCurrency(total);
+    return;
+  }
+
+  const deliveryFee = getDeliveryFee(total);
+  const finalTotal = total + (deliveryFee || 0);
+
+  deliverySummaryBox.classList.remove('is-warning');
+
+  if (currentOrderType === 'delivery') {
+    deliveryInfoBox.classList.remove('d-none');
+    deliveryAddressGroup.classList.remove('d-none');
+    deliveryAddressInput.required = true;
+
+    if (total < DELIVERY_RULES.minimumSubtotal) {
+      deliverySummaryBox.classList.remove('d-none');
+      deliverySummaryBox.innerHTML = `
+        <strong>Livraison indisponible</strong><br>
+        La livraison est possible à partir de ${formatCurrency(DELIVERY_RULES.minimumSubtotal)} de commande.
+      `;
+      submitBtn.disabled = true;
+      cartTotalEl.textContent = formatCurrency(total);
+      return;
+    }
+
+    deliverySummaryBox.classList.remove('d-none');
+    deliverySummaryBox.innerHTML = deliveryFee === 0
+      ? `
+        <strong>Livraison offerte</strong><br>
+        Votre commande atteint ${formatCurrency(DELIVERY_RULES.freeDeliveryThreshold)} ou plus.
+        Total final estimé: ${formatCurrency(finalTotal)}.
+      `
+      : `
+        <strong>Frais de livraison: ${formatCurrency(DELIVERY_RULES.deliveryFee)}</strong><br>
+        Entre ${formatCurrency(DELIVERY_RULES.minimumSubtotal)} et ${formatCurrency(DELIVERY_RULES.freeDeliveryThreshold - 0.01)}, la livraison coûte ${formatCurrency(DELIVERY_RULES.deliveryFee)}.
+        Total final estimé: ${formatCurrency(finalTotal)}.
+      `;
+    submitBtn.disabled = false;
+    cartTotalEl.textContent = formatCurrency(finalTotal);
+    return;
+  }
+
+  deliveryAddressGroup.classList.add('d-none');
+  deliveryAddressInput.required = false;
+  deliveryAddressInput.value = deliveryAddressInput.value.trim();
+  deliverySummaryBox.classList.add('d-none');
+  deliveryInfoBox.classList.add('d-none');
+  submitBtn.disabled = false;
+  cartTotalEl.textContent = formatCurrency(total);
+}
+
+function showInlineDeliveryWarning(message) {
+  const deliverySummaryBox = document.getElementById('deliverySummaryBox');
+  if (!deliverySummaryBox) return;
+
+  deliverySummaryBox.classList.remove('d-none');
+  deliverySummaryBox.classList.add('is-warning');
+  deliverySummaryBox.innerHTML = `<strong>Adresse non livrable</strong><br>${message}`;
 }
 
 async function handleCheckoutSubmit(e) {
   e.preventDefault();
 
   const phone = document.getElementById('phoneInput').value.trim();
+  const deliveryAddressInput = document.getElementById('deliveryAddress');
+  const deliveryAddress = deliveryAddressInput ? deliveryAddressInput.value.trim() : '';
   
   if (!phone) {
     alert('Veuillez entrer votre numéro de téléphone');
@@ -400,12 +678,68 @@ async function handleCheckoutSubmit(e) {
   }
 
   const items = CartManager.getItems();
-  const total = CartManager.getTotal();
+  const subtotal = CartManager.getTotal();
+  const orderType = currentOrderType;
 
   if (items.length === 0) {
     alert('Votre panier est vide');
     return;
   }
+
+  let deliveryDistanceKm = null;
+  let deliveryFee = getDeliveryFee(subtotal);
+  if (orderType === 'delivery') {
+    if (subtotal < DELIVERY_RULES.minimumSubtotal) {
+      alert(`La livraison est disponible à partir de ${formatCurrency(DELIVERY_RULES.minimumSubtotal)} de commande.`);
+      return;
+    }
+
+    if (!deliveryAddress) {
+      alert('Veuillez entrer votre adresse de livraison');
+      return;
+    }
+
+    try {
+      const restaurantLocation = await getRestaurantLocation();
+
+      // If the user selected a suggestion earlier and it matches the input, use it
+      let customerLocation = null;
+      if (lastSelectedAddressLocation && lastSelectedAddressString && lastSelectedAddressString === deliveryAddress) {
+        customerLocation = lastSelectedAddressLocation;
+      } else {
+        customerLocation = await geocodeAddress(deliveryAddress);
+      }
+
+
+      if (!customerLocation) {
+        alert('Adresse introuvable. Merci de saisir une adresse plus précise.');
+        return;
+      }
+
+      deliveryDistanceKm = haversineDistanceKm(
+        restaurantLocation.lat,
+        restaurantLocation.lon,
+        customerLocation.lat,
+        customerLocation.lon
+      );
+
+      if (deliveryDistanceKm > DELIVERY_RULES.maxDistanceKm) {
+        showInlineDeliveryWarning(`Nous ne pouvons pas livrer à cette adresse. La distance dépasse ${DELIVERY_RULES.maxDistanceKm} km.`);
+        return;
+      }
+    } catch (error) {
+      console.error('Delivery validation error:', error);
+      alert(error.message || 'Impossible de vérifier votre adresse pour le moment');
+      return;
+    }
+  }
+
+  if (deliveryFee === null) {
+    alert(`La livraison est disponible à partir de ${formatCurrency(DELIVERY_RULES.minimumSubtotal)} de commande.`);
+    return;
+  }
+
+  const finalTotal = subtotal + deliveryFee;
 
   // Désactiver le bouton pendant l'envoi
   const submitBtn = document.querySelector('.btn-validate-order');
@@ -413,11 +747,24 @@ async function handleCheckoutSubmit(e) {
   submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Envoi...';
 
   try {
+    const orderItems = {
+      items,
+      meta: {
+        order_type: orderType,
+        delivery_address: orderType === 'delivery' ? deliveryAddress : '',
+        delivery_distance_km: deliveryDistanceKm,
+        delivery_fee: deliveryFee,
+        subtotal,
+        final_total: finalTotal,
+        restaurant_address: RESTAURANT_ADDRESS,
+      },
+    };
+
     // Préparer les données de la commande
     const orderData = {
       phone_number: phone,
-      items: items,
-      total: total,
+      items: orderItems,
+      total: finalTotal,
       created_at: new Date().toISOString()
     };
 
@@ -448,6 +795,8 @@ async function handleCheckoutSubmit(e) {
     CartManager.updateBadge();
     closeCartDrawer();
     document.getElementById('cartCheckoutForm').reset();
+    currentOrderType = 'pickup';
+    updateDeliveryUI();
 
   } catch (error) {
     console.error('Error submitting order:', error);

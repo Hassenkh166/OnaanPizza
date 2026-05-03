@@ -6,6 +6,16 @@ import { requireAuth } from './checkAuthentication.js';
 document.addEventListener('DOMContentLoaded', async () => {
   await requireAuth();
 
+  // Get auth token for API calls
+  const { data: { session } } = await supabase.auth.getSession();
+  const authToken = session?.access_token;
+
+  if (!authToken) {
+    console.error('No auth token found');
+    window.location.href = 'login.html';
+    return;
+  }
+
   // Gestionnaire pour le lien de déconnexion
   const logoutLink = document.getElementById('logoutLink');
   if (logoutLink) {
@@ -120,7 +130,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     try{
       const res = await fetch(FUNCTIONS.deletePromotion, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
         body: JSON.stringify({ id })
       });
       if (!res.ok) throw new Error('Delete failed');
@@ -166,19 +179,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       let res;
       if (id) {
         // Update existing promotion
-     res = await fetch(FUNCTIONS.updatePromotion, {
-  method: 'POST',
-  headers: { 
-    'Content-Type': 'application/json',
-    'apikey': roleKey // Ajoute cette ligne !
-  },
-  body: JSON.stringify({ id, ...payload })
-});
+        res = await fetch(FUNCTIONS.updatePromotion, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ id, ...payload })
+        });
       } else {
         // Create new promotion
         res = await fetch(FUNCTIONS.promotions, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
           body: JSON.stringify(payload)
         });
       }
