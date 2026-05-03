@@ -191,6 +191,21 @@
   transform: translateY(0);
 }
 
+/* Make the entire drawer content scrollable so form and items can fit */
+.cart-drawer-content {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 20px; /* safe area for mobile */
+}
+
+/* Keep header visible while the rest scrolls */
+.cart-drawer-header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 3;
+}
+
 /* Header du bottom sheet */
 .cart-drawer-header {
   display: flex;
@@ -245,6 +260,12 @@
   min-height: 100px;
 }
 
+/* Make the items list taller on most screens but keep it scrollable */
+.cart-items-container {
+  min-height: 180px;
+  max-height: 60vh;
+}
+
 /* Chaque item du panier */
 .cart-item {
   display: flex;
@@ -275,6 +296,22 @@
   color: #1a1a1a;
   margin: 0 0 4px 0;
   word-break: break-word;
+}
+
+/* Options display in cart item */
+.cart-item-options {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 4px 0 8px 0;
+  padding: 4px 0;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.option-line {
+  margin: 2px 0;
+  color: #777;
+  font-style: italic;
 }
 
 .cart-item-price {

@@ -35,7 +35,7 @@ const CartManager = (() => {
 
   /**
    * Add product to cart
-   * @param {Object} product - Product with id, name, price, image
+   * @param {Object} product - Product with id, name, price, image, options (optional)
    * @param {number} quantity - Quantity to add (default 1)
    */
   function addToCart(product, quantity = 1) {
@@ -45,20 +45,28 @@ const CartManager = (() => {
     }
 
     const cart = getCart();
-    const existingItem = cart.items.find(item => item.id === product.id);
+    
+    // Create a unique key for this item (considering options if present)
+    const optionsKey = product.options ? JSON.stringify(product.options) : '';
+    const existingItem = cart.items.find(item => 
+      item.id === product.id && 
+      (item.optionsKey === optionsKey)
+    );
 
     if (existingItem) {
-      // Product already in cart - increase quantity
+      // Same product with same options - increase quantity
       existingItem.quantity += quantity;
       console.log(`Updated quantity for ${product.name}: ${existingItem.quantity}`);
     } else {
-      // New product - add to cart
+      // New product or different options - add to cart
       cart.items.push({
         id: product.id,
         name: product.name,
         price: parseFloat(product.price),
         image: product.image || '',
-        quantity: quantity
+        quantity: quantity,
+        options: product.options || {},
+        optionsKey: optionsKey
       });
       console.log(`Added ${product.name} to cart`);
     }
@@ -316,6 +324,13 @@ function closeCartDrawer() {
   const drawer = document.getElementById('cartDrawer');
   if (!drawer) return;
 
+  // reset any drag transform applied during swipe
+  const content = drawer.querySelector('.cart-drawer-content');
+  if (content) {
+    content.style.transition = '';
+    content.style.transform = '';
+  }
+
   drawer.classList.remove('active');
   document.body.style.overflow = 'auto';
 }
@@ -342,33 +357,49 @@ function renderCartItems() {
   form.style.display = 'flex';
   document.querySelector('.cart-drawer-total').style.display = 'block';
 
-  container.innerHTML = items.map(item => `
-    <div class="cart-item" data-id="${item.id}">
-      <img src="${item.image || '/assets/images/placeholder.jpg'}" 
-           alt="${item.name}" 
-           class="cart-item-image"
-           onerror="this.src='/assets/images/placeholder.jpg'">
-      
-      <div class="cart-item-details">
-        <h4 class="cart-item-title">${item.name}</h4>
-        <div class="cart-item-price">${(item.price * item.quantity).toFixed(2)} €</div>
+  container.innerHTML = items.map(item => {
+    // Format options display
+    let optionsHTML = '';
+    if (item.options && Object.keys(item.options).length > 0) {
+      optionsHTML = '<div class="cart-item-options">';
+      for (const [optionId, optionData] of Object.entries(item.options)) {
+        if (optionData && optionData.values) {
+          const values = optionData.values.map(v => v.value).join(', ');
+          optionsHTML += `<div class="option-line"><small>${optionData.optionName}: ${values}</small></div>`;
+        }
+      }
+      optionsHTML += '</div>';
+    }
+    
+    return `
+      <div class="cart-item" data-id="${item.id}">
+        <img src="${item.image || '/assets/images/placeholder.jpg'}" 
+             alt="${item.name}" 
+             class="cart-item-image"
+             onerror="this.src='/assets/images/placeholder.jpg'">
         
-        <div class="cart-item-quantity">
-          <button class="qty-btn" onclick="updateItemQuantity(${item.id}, ${item.quantity - 1})">
-            <i class="fas fa-minus"></i>
-          </button>
-          <input type="number" class="qty-input" value="${item.quantity}" readonly>
-          <button class="qty-btn" onclick="updateItemQuantity(${item.id}, ${item.quantity + 1})">
-            <i class="fas fa-plus"></i>
-          </button>
+        <div class="cart-item-details">
+          <h4 class="cart-item-title">${item.name}</h4>
+          ${optionsHTML}
+          <div class="cart-item-price">${(item.price * item.quantity).toFixed(2)} €</div>
+          
+          <div class="cart-item-quantity">
+            <button class="qty-btn" onclick="updateItemQuantity(${item.id}, ${item.quantity - 1})">
+              <i class="fas fa-minus"></i>
+            </button>
+            <input type="number" class="qty-input" value="${item.quantity}" readonly>
+            <button class="qty-btn" onclick="updateItemQuantity(${item.id}, ${item.quantity + 1})">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
         </div>
+        
+        <button class="cart-item-remove" onclick="removeItem(${item.id})" title="Supprimer">
+          <i class="fas fa-trash"></i>
+        </button>
       </div>
-      
-      <button class="cart-item-remove" onclick="removeItem(${item.id})" title="Supprimer">
-        <i class="fas fa-trash"></i>
-      </button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   updateDeliveryUI();
 }
@@ -395,7 +426,13 @@ function setupDrawerEvents() {
   const form = document.getElementById('cartCheckoutForm');
 
   if (backdrop) {
+    // click/tap on backdrop should close drawer
     backdrop.addEventListener('click', closeCartDrawer);
+    backdrop.addEventListener('pointerdown', (e) => {
+      // pointerdown helps on some mobile browsers where click may not fire reliably
+      if (e.pointerType === 'touch' || e.pointerType === 'mouse') closeCartDrawer();
+    });
+    backdrop.addEventListener('touchend', () => closeCartDrawer());
   }
 
   if (closeBtn) {
@@ -426,6 +463,56 @@ function setupDrawerEvents() {
 
       form.dataset.deliveryBound = 'true';
     }
+  }
+
+  // Add swipe-to-close on mobile for the drawer content
+  const drawerContent = document.querySelector('#cartDrawer .cart-drawer-content');
+  if (drawerContent) {
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    const THRESHOLD = 80; // pixels to trigger close
+
+    function onStart(e) {
+      // Only start a drag-to-close gesture if the content is scrolled to top
+      if (drawerContent.scrollTop > 0) {
+        isDragging = false;
+        return;
+      }
+      isDragging = true;
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      drawerContent.style.transition = 'none';
+    }
+
+    function onMove(e) {
+      if (!isDragging) return;
+      currentY = e.touches ? e.touches[0].clientY : e.clientY;
+      const diff = Math.max(0, currentY - startY);
+      // apply transform only when dragging downwards
+      if (diff > 0) drawerContent.style.transform = `translateY(${diff}px)`;
+    }
+
+    function onEnd() {
+      if (!isDragging) return;
+      isDragging = false;
+      const diff = currentY - startY;
+      drawerContent.style.transition = 'transform 0.25s ease';
+      if (diff > THRESHOLD) {
+        closeCartDrawer();
+      } else {
+        drawerContent.style.transform = 'translateY(0)';
+      }
+      startY = 0; currentY = 0;
+    }
+
+    drawerContent.addEventListener('touchstart', onStart, { passive: true });
+    drawerContent.addEventListener('touchmove', onMove, { passive: true });
+    drawerContent.addEventListener('touchend', onEnd);
+    // also support pointer events (desktop drag)
+    drawerContent.addEventListener('pointerdown', onStart);
+    drawerContent.addEventListener('pointermove', onMove);
+    drawerContent.addEventListener('pointerup', onEnd);
+    drawerContent.addEventListener('pointercancel', onEnd);
   }
 }
 

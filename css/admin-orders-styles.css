@@ -29,6 +29,37 @@
     color: #1a1a1a;
 }
 
+.order-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.order-type-badge.badge-pickup {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.order-type-badge.badge-takeaway {
+    background: #fff3e0;
+    color: #ef6c00;
+    border: 1px solid #ffe0b2;
+}
+
+.order-type-badge.badge-delivery {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+}
+
 .order-status {
     display: inline-block;
     padding: 6px 12px;
@@ -105,22 +136,66 @@
 .order-item {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     padding: 6px 0;
     font-size: 0.9rem;
     border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
 }
 
 .order-item:last-child {
     border-bottom: none;
 }
 
+.order-item-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.order-item-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .order-item-name {
     color: #1a1a1a;
+    font-weight: 600;
+}
+
+.order-item-qty-label {
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.order-item-options {
+    margin-top: 4px;
+    padding-left: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.order-item-options-line {
+    color: #666;
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.order-item-option-name {
+    font-weight: 600;
+    color: #444;
+}
+
+.order-item-option-values {
+    color: #666;
 }
 
 .order-item-qty {
     color: #E53935;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .order-total {

@@ -20,7 +20,8 @@ function loadReviews() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': supabaseKey
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
         }
       });
       if (resp.ok) {
@@ -32,9 +33,11 @@ function loadReviews() {
           reviewData = data[0] || {};
         }
         
-        // Parse reviews_json if it exists
+        // Parse reviews from either `reviews` (new payload) or `reviews_json` (legacy payload)
         let reviews = [];
-        if (reviewData.reviews_json) {
+        if (Array.isArray(reviewData.reviews)) {
+          reviews = reviewData.reviews;
+        } else if (reviewData.reviews_json) {
           try {
             reviews = JSON.parse(reviewData.reviews_json);
             console.log('Parsed reviews:', reviews);
@@ -53,8 +56,9 @@ function loadReviews() {
             date: r.relative_time_description || (r.time ? new Date(r.time*1000).toLocaleDateString() : ''),
             text: r.text || r.content || ''
           }));
-          // keep only reviews with rating > 4 (5 stars only)
-          reviewsSource = reviewsSource.filter(rv => Number(rv.rating || 0) > 4);
+          // keep only strong reviews, but do not hide all reviews if none are > 4
+          const filtered = reviewsSource.filter(rv => Number(rv.rating || 0) > 4);
+          reviewsSource = filtered.length ? filtered : reviewsSource;
           // expose average/total if elements exist
           const avgEl = document.getElementById('reviewsAvg');
           const totEl = document.getElementById('reviewsTotal');

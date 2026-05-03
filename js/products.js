@@ -217,7 +217,7 @@ function createProductCard(product, index) {
           <!-- Footer with price and button -->
           <div class="product-footer">
             <div class="product-price">${product.price || 'Prix non défini'}</div>
-            <button class="btn-add-to-cart-small" onclick="handleAddToCart(${product.id})">
+            <button class="btn-add-to-cart-small" onclick="handleAddToCart(${product.id}, event)">
               <i class="fas fa-shopping-cart"></i>
             </button>
           </div>
@@ -307,24 +307,30 @@ window.addEventListener('scroll', () => {
 */
 
 // Add to cart handler
-function handleAddToCart(productId) {
+function handleAddToCart(productId, evt) {
   const product = products.find(p => p.id === productId);
   if (!product) {
     console.error('Product not found:', productId);
     return;
   }
 
-  // Add to cart using CartManager
-  CartManager.addToCart({
-    id: product.id,
-    name: product.title,
-    price: product.price,
-    image: product.img
-  }, 1);
-  
-  // Show check badge - get the button that was clicked
-  const button = event ? event.target.closest('button') : null;
-  showCheckBadge(button);
+  // Import modal and open with callback
+  import('./product-options-modal.js').then(() => {
+    ProductOptionsModal.open(product, (selectedOptions, totalPrice) => {
+      // Callback when options are confirmed
+      CartManager.addToCart({
+        id: product.id,
+        name: product.title,
+        price: totalPrice,  // Use adjusted price with modifiers
+        image: product.img,
+        options: selectedOptions
+      }, 1);
+      
+      // Show check badge
+      const button = evt ? evt.target.closest('button') : null;
+      showCheckBadge(button);
+    });
+  });
 }
 
 // Make function globally accessible

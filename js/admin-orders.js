@@ -3,7 +3,7 @@
  * Affiche et gère les commandes
  */
 
-import { supabase, roleKey, FUNCTIONS } from './supabaseClient.js';
+import { roleKey } from './supabaseClient.js';
 
 let allOrders = [];
 let currentFilter = 'all';
@@ -11,13 +11,6 @@ let currentFilter = 'all';
 // Récupérer les commandes depuis Supabase
 async function loadOrders() {
     try {
-        // Utiliser l'API Supabase pour récupérer les commandes
-        // On utiliser un Edge Function ou directement via Supabase client
-        // Pour simplifier, on va utiliser une approche directe
-        
-        // Note: On peut aussi créer une Edge Function get-orders
-        // Pour maintenant, on utilisera une requête directe si possible
-        
         const response = await fetch(
             'https://ecgujuutpxebpjwdwhcy.supabase.co/rest/v1/orders?order=created_at.desc',
             {
@@ -37,7 +30,6 @@ async function loadOrders() {
 
         allOrders = await response.json();
         console.log('Orders loaded:', allOrders);
-        
         renderOrders();
     } catch (error) {
         console.error('Error loading orders:', error);
@@ -50,7 +42,10 @@ function renderOrders() {
     const ordersList = document.getElementById('ordersList');
     const emptyMsg = document.getElementById('emptyMessage');
 
-    // Filtrer les commandes
+    if (!ordersList || !emptyMsg) {
+        return;
+    }
+
     let filtered = allOrders;
     if (currentFilter !== 'all') {
         filtered = allOrders.filter(o => o.status === currentFilter);
@@ -63,13 +58,13 @@ function renderOrders() {
     }
 
     emptyMsg.classList.add('d-none');
-    
+
     ordersList.innerHTML = filtered.map(order => `
         <div class="admin-order-card" data-id="${order.id}">
-            <!-- Header with ID and Status -->
             <div class="order-header">
                 <div>
                     <span class="order-id">#${order.id}</span>
+                    ${renderOrderTypeBadge(order.items)}
                     <span style="font-size: 0.85rem; color: #999; margin-left: 10px;">
                         ${formatDate(order.created_at)}
                     </span>
@@ -79,7 +74,6 @@ function renderOrders() {
                 </span>
             </div>
 
-            <!-- Order Info -->
             <div class="order-info">
                 <div class="info-row">
                     <span class="info-label">📞 Téléphone</span>
@@ -87,37 +81,36 @@ function renderOrders() {
                 </div>
                 <div class="info-row">
                     <span class="info-label">💰 Montant Total</span>
-                    <span class="info-value">${order.total.toFixed(2)} €</span>
+                    <span class="info-value">${Number(order.total || 0).toFixed(2)} €</span>
                 </div>
             </div>
 
             ${renderOrderFulfillment(order.items)}
 
-            <!-- Items -->
             <div class="order-items">
                 <div class="order-items-title">Articles commandés</div>
                 ${renderOrderItems(order.items)}
             </div>
 
-            <!-- Total -->
             <div class="order-total">
                 <span>Total à payer</span>
-                <span class="order-total-value">${order.total.toFixed(2)} €</span>
+                <span class="order-total-value">${Number(order.total || 0).toFixed(2)} €</span>
             </div>
 
-            <!-- Actions -->
             <div class="order-actions">
                 ${renderStatusButtons(order)}
             </div>
         </div>
     `).join('');
 
-    // Binder les événements des boutons
     document.querySelectorAll('[data-status-btn]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const orderId = e.target.closest('[data-id]').dataset.id;
+            const card = e.target.closest('[data-id]');
+            const orderId = card?.dataset.id;
             const newStatus = e.target.dataset.statusBtn;
-            updateOrderStatus(orderId, newStatus);
+            if (orderId && newStatus) {
+                updateOrderStatus(orderId, newStatus);
+            }
         });
     });
 }
@@ -127,57 +120,106 @@ function renderOrderItems(itemsJson) {
     try {
         const parsed = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
         const items = Array.isArray(parsed) ? parsed : (parsed?.items || []);
-        
-        return items.map(item => `
-            <div class="order-item">
-                <span>
-                    <span class="order-item-name">${item.name}</span>
-                    <span style="color: #999; font-size: 0.85rem;"> × ${item.quantity}</span>
-                </span>
-                <span class="order-item-qty">${(item.price * item.quantity).toFixed(2)} €</span>
-            </div>
-        `).join('');
+
+        return items.map(item => {
+            const optionsHTML = renderOrderItemOptions(item.options);
+            const quantity = Number(item.quantity || 1);
+            const unitPrice = Number(item.price || 0);
+            const itemTotal = unitPrice * quantity;
+
+            return `
+                <div class="order-item">
+                    <div class="order-item-main">
+                        <div class="order-item-title-row">
+                            <span class="order-item-name">${item.name}</span>
+                            <span class="order-item-qty-label">× ${quantity}</span>
+                        </div>
+                        ${optionsHTML}
+                    </div>
+                    <span class="order-item-qty">${itemTotal.toFixed(2)} €</span>
+                </div>
+            `;
+        }).join('');
     } catch (e) {
         console.error('Error parsing items:', e);
         return '<span style="color: #999;">Erreur lors du chargement des articles</span>';
     }
 }
 
-function renderOrderFulfillment(itemsJson) {
+function renderOrderItemOptions(options) {
+    if (!options || typeof options !== 'object') {
+        return '';
+    }
+
+    const lines = Object.values(options)
+        .map(option => {
+            const values = Array.isArray(option?.values) ? option.values : [];
+            if (values.length === 0) return '';
+
+            const optionLabel = option.optionName || 'Option';
+            const valueLabel = values.map(value => value.value).filter(Boolean).join(', ');
+            if (!valueLabel) return '';
+
+            return `<div class="order-item-options-line"><span class="order-item-option-name">${optionLabel}:</span> <span class="order-item-option-values">${valueLabel}</span></div>`;
+        })
+        .filter(Boolean);
+
+    if (lines.length === 0) {
+        return '';
+    }
+
+    return `<div class="order-item-options">${lines.join('')}</div>`;
+}
+
+function getOrderMeta(itemsJson) {
     try {
         const parsed = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
-        const meta = Array.isArray(parsed) ? null : (parsed?.meta || null);
+        return Array.isArray(parsed) ? null : (parsed?.meta || null);
+    } catch (e) {
+        return null;
+    }
+}
 
-        if (!meta || !meta.order_type) {
+function renderOrderTypeBadge(itemsJson) {
+    const meta = getOrderMeta(itemsJson);
+    const orderType = meta?.order_type || 'takeaway';
+
+    const badgeConfig = {
+        pickup: { label: 'Sur place', icon: 'fa-store', className: 'badge-pickup' },
+        takeaway: { label: 'À emporter', icon: 'fa-bag-shopping', className: 'badge-takeaway' },
+        delivery: { label: 'Livraison', icon: 'fa-truck', className: 'badge-delivery' },
+    };
+
+    const badge = badgeConfig[orderType] || badgeConfig.takeaway;
+
+    return `
+        <span class="order-type-badge ${badge.className}">
+            <i class="fas ${badge.icon} me-1"></i>${badge.label}
+        </span>
+    `;
+}
+
+function renderOrderFulfillment(itemsJson) {
+    try {
+        const meta = getOrderMeta(itemsJson);
+        if (!meta || meta.order_type !== 'delivery') {
             return '';
         }
-
-        const labels = {
-            pickup: 'Sur place',
-            takeaway: 'À emporter',
-            delivery: 'Livraison à domicile',
-        };
 
         return `
             <div class="order-fulfillment">
                 <div class="info-row">
-                    <span class="info-label">🧾 Mode</span>
-                    <span class="info-value">${labels[meta.order_type] || meta.order_type}</span>
+                    <span class="info-label">📍 Adresse</span>
+                    <span class="info-value">${meta.delivery_address || 'Non renseignée'}</span>
                 </div>
-                ${meta.order_type === 'delivery' ? `
-                    <div class="info-row">
-                        <span class="info-label">📍 Adresse</span>
-                        <span class="info-value">${meta.delivery_address || 'Non renseignée'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">📏 Distance</span>
-                        <span class="info-value">${typeof meta.delivery_distance_km === 'number' ? meta.delivery_distance_km.toFixed(2) + ' km' : 'N/A'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">🚚 Frais</span>
-                        <span class="info-value">${typeof meta.delivery_fee === 'number' ? meta.delivery_fee.toFixed(2) + ' €' : '0.00 €'}</span>
-                    </div>
-                ` : ''}
+                <div class="info-row">
+                    <span class="info-label">📏 Distance</span>
+                    <span class="info-value">${typeof meta.delivery_distance_km === 'number' ? meta.delivery_distance_km.toFixed(2) + ' km' : 'N/A'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🚚 Frais</span>
+                    <span class="info-value">${typeof meta.delivery_fee === 'number' ? meta.delivery_fee.toFixed(2) + ' €' : '0.00 €'}</span>
+                </div>
             </div>
         `;
     } catch (e) {
@@ -187,38 +229,39 @@ function renderOrderFulfillment(itemsJson) {
 
 // Boutons pour changer le status
 function renderStatusButtons(order) {
+    const meta = getOrderMeta(order.items);
+    const isDelivery = meta?.order_type === 'delivery';
     const statusFlow = ['pending', 'preparing', 'delivered'];
     const currentIndex = statusFlow.indexOf(order.status);
-    
+
     let buttons = '';
-    
-    // Bouton pour passer au status suivant
-    if (currentIndex < statusFlow.length - 1) {
+
+    if (currentIndex > -1 && currentIndex < statusFlow.length - 1) {
         const nextStatus = statusFlow[currentIndex + 1];
-        const nextLabel = translateStatus(nextStatus);
+        const nextLabel = nextStatus === 'delivered'
+            ? (isDelivery ? 'Terminer' : 'Terminer')
+            : translateStatus(nextStatus);
         buttons += `
             <button class="status-btn primary" data-status-btn="${nextStatus}">
                 <i class="fas fa-arrow-right me-2"></i>${nextLabel}
             </button>
         `;
     }
-    
-    // Bouton pour rappeler le client
+
     buttons += `
         <button class="status-btn secondary" onclick="callCustomer('${order.phone_number}')">
             <i class="fas fa-phone me-2"></i>Appeler
         </button>
     `;
-    
+
     return buttons;
 }
 
 // Mettre à jour le status d'une commande
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        console.log('Updating order:', { orderId, newStatus }); // Debug
-        
-        // Call the update-order-status Edge Function
+        console.log('Updating order:', { orderId, newStatus });
+
         const updateOrderStatusUrl = 'https://ecgujuutpxebpjwdwhcy.supabase.co/functions/v1/update-order-status';
         const response = await fetch(updateOrderStatusUrl, {
             method: 'PATCH',
@@ -242,7 +285,6 @@ async function updateOrderStatus(orderId, newStatus) {
         const result = await response.json();
         console.log('Update result:', result);
 
-        // Update the order locally
         const order = allOrders.find(o => o.id == orderId);
         if (order) {
             order.status = newStatus;
@@ -250,15 +292,12 @@ async function updateOrderStatus(orderId, newStatus) {
         }
 
         renderOrders();
-        
-        // Show loyalty modal when status changes to "preparing"
+
         if (newStatus === 'preparing' && result.loyalty) {
             showLoyaltyModal(result.loyalty);
         } else {
-            // Show confirmation message
             showSuccessMessage(`Commande #${orderId} mise à jour: ${translateStatus(newStatus)}`);
         }
-        
     } catch (error) {
         console.error('Error updating order:', error);
         showErrorMessage('Erreur lors de la mise à jour: ' + error.message);
@@ -274,12 +313,12 @@ function showLoyaltyModal(loyaltyInfo) {
     modal.setAttribute('tabindex', '-1');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('role', 'dialog');
-    
+
     const totalSpent = parseFloat(loyaltyInfo.total_spent).toFixed(2);
     const pointsBalance = parseFloat(loyaltyInfo.points_balance).toFixed(2);
     const productsToGive = loyaltyInfo.products_to_give_now || 0;
     const newFreeProduct = productsToGive > 0;
-    
+
     modal.innerHTML = `
         <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content">
@@ -336,16 +375,8 @@ function showLoyaltyModal(loyaltyInfo) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
-    
-    // Pour fermer le modal
-    const closeBtn = modal.querySelector('.btn-secondary');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            modal.remove();
-        });
-    }
 }
 
 // Appeler le client
@@ -359,7 +390,7 @@ function translateStatus(status) {
     const statuses = {
         'pending': '⏳ En attente',
         'preparing': '👨‍🍳 En préparation',
-        'delivered': '✅ Terminé'
+        'delivered': '✅ Livré'
     };
     return statuses[status] || status;
 }
@@ -370,10 +401,10 @@ function formatDate(dateStr) {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const isToday = date.toDateString() === today.toDateString();
     const isYesterday = date.toDateString() === yesterday.toDateString();
-    
+
     if (isToday) {
         return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     } else if (isYesterday) {
@@ -393,7 +424,7 @@ function showErrorMessage(msg) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(toast);
-    
+
     setTimeout(() => toast.remove(), 5000);
 }
 
@@ -406,7 +437,7 @@ function showSuccessMessage(msg) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(toast);
-    
+
     setTimeout(() => toast.remove(), 3000);
 }
 
@@ -451,34 +482,30 @@ if (document.readyState === 'loading') {
 
 // Initialize Realtime subscription
 async function initOrders() {
-    // Load orders initially
     await loadOrders();
-    
-    // Subscribe to realtime changes on orders table
+
     try {
         const { supabase } = await import('./supabaseClient.js');
-        
+
         supabase
             .channel('orders-channel')
             .on(
                 'postgres_changes',
                 {
-                    event: '*', // Listen to INSERT, UPDATE, DELETE
+                    event: '*',
                     schema: 'public',
                     table: 'orders'
                 },
                 (payload) => {
                     console.log('Order change detected:', payload);
-                    // Reload orders when any change occurs
                     loadOrders();
                 }
             )
             .subscribe();
-            
+
         console.log('Realtime subscription active');
     } catch (error) {
         console.error('Realtime subscription failed:', error);
-        // Fallback to polling if realtime fails
         setInterval(loadOrders, 30000);
     }
 }

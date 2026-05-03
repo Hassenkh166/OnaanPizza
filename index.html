@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/cart.css">
+    <link rel="stylesheet" href="css/product-options.css">
     <!-- FontAwesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" href="/assets/images/NewLogo.png">
@@ -463,11 +464,41 @@
       <span id="cartBadge" class="cart-badge d-none">0</span>
     </button>
 
+    <!-- PRODUCT OPTIONS MODAL -->
+    <div id="productOptionsModal" class="product-options-modal">
+      <div id="optionsModalBackdrop" class="product-options-backdrop"></div>
+      
+      <div class="product-options-content">
+        <div class="options-header">
+          <h3 id="optionsModalTitle">Produit</h3>
+          <button id="optionsModalClose" class="options-close" aria-label="Fermer">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div id="optionsContainer" class="options-container">
+          <!-- Options will be rendered here -->
+        </div>
+
+        <div class="options-footer">
+          <div class="options-total">
+            <span>Total:</span>
+            <span id="optionsModalTotalPrice">0.00</span>
+            <span>€</span>
+          </div>
+          <button id="optionsModalConfirm" class="btn-confirm-options">
+            Ajouter au panier
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="overlay" class="menu-overlay"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="js/cart.js"></script>
+    <script type="module" src="js/product-options-modal.js"></script>
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/products.js"></script>
     <script type="module" src="js/reviews.js"></script>

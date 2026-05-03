@@ -1,0 +1,252 @@
+/* ===== PRODUCT OPTIONS MODAL ===== */
+
+.product-options-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.product-options-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.product-options-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.product-options-content {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.2);
+  z-index: 1051;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.product-options-modal.active .product-options-content {
+  transform: translateY(0);
+}
+
+/* Header */
+.options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 2;
+}
+
+.options-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.options-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s ease;
+  padding: 5px 10px;
+}
+
+.options-close:hover {
+  color: #E53935;
+}
+
+/* Options container */
+.options-container {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.option-group {
+  margin-bottom: 25px;
+}
+
+.option-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.option-name .required {
+  color: #E53935;
+  font-size: 1.1rem;
+}
+
+.option-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-label {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-label:hover {
+  background: #f0f0f0;
+  border-color: #E53935;
+}
+
+.option-label--featured {
+  background: linear-gradient(135deg, #fff4d6 0%, #ffe9b0 100%);
+  border-color: #f0b429;
+  box-shadow: 0 4px 12px rgba(240, 180, 41, 0.18);
+}
+
+.option-label--featured:hover {
+  background: linear-gradient(135deg, #fff0c2 0%, #ffe39a 100%);
+  border-color: #d98f00;
+}
+
+.option-label input {
+  margin-right: 12px;
+  cursor: pointer;
+  accent-color: #E53935;
+  width: 18px;
+  height: 18px;
+}
+
+.option-text {
+  font-size: 0.9rem;
+  color: #444;
+  font-weight: 500;
+}
+
+.option-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f0b429;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* Footer */
+.options-footer {
+  padding: 15px 20px 30px 20px;
+  border-top: 2px solid #f0f0f0;
+  background: #f9f9f9;
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.options-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+#optionsModalTotalPrice {
+  color: #E53935;
+  font-size: 1.3rem;
+}
+
+.btn-confirm-options {
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-confirm-options:hover {
+  background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(229, 57, 53, 0.3);
+}
+
+.btn-confirm-options:active {
+  transform: translateY(0);
+}
+
+/* Mobile optimizations */
+@media (max-width: 576px) {
+  .product-options-content {
+    max-height: 95vh;
+  }
+
+  .options-header {
+    padding: 16px;
+  }
+
+  .options-container {
+    padding: 16px;
+  }
+
+  .options-footer {
+    padding: 12px 16px 24px 16px;
+  }
+
+  .option-label {
+    padding: 10px;
+  }
+}
+
+/* Handle bar at top (visual indicator) */
+.product-options-content::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+}
