@@ -9,6 +9,441 @@
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/admin-styles.css">
+    <style>
+      /* === MODERN NEWSLETTER DESIGN === */
+      :root {
+        --primary: #E53935;
+        --primary-dark: #C62828;
+        --primary-light: #EF5350;
+        --accent: #f6c04d;
+        --success: #43A047;
+        --danger: #E53935;
+        --light-gray: #F5F7FA;
+        --border-gray: #E0E3E8;
+        --text-dark: #1A1A1A;
+        --text-muted: #6B7280;
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+      }
+
+      .newsletter-container {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        min-height: 100vh;
+        padding: 20px 0;
+      }
+
+      .newsletter-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 40px 30px;
+        border-radius: 16px;
+        margin-bottom: 30px;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .newsletter-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+      }
+
+      .newsletter-header-content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .newsletter-header h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .newsletter-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.95;
+        font-size: 1rem;
+      }
+
+      /* === STATS CARDS === */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-gray);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+      }
+
+      .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+      }
+
+      .stat-card-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, rgba(229, 57, 53, 0.1), rgba(246, 192, 77, 0.1));
+        color: var(--primary);
+      }
+
+      .stat-card-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+      }
+
+      .stat-card-value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--text-dark);
+      }
+
+      /* === ACTION TOOLBAR === */
+      .newsletter-toolbar {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 30px;
+        border: 1px solid var(--border-gray);
+      }
+
+      .toolbar-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .toolbar-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .toolbar-control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .toolbar-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+
+      .form-select, .form-control {
+        border: 1px solid var(--border-gray);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-select:focus, .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+      }
+
+      .toolbar-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn-toolbar {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+
+      .btn-send {
+        background: linear-gradient(135deg, var(--success), #2E7D32);
+        color: white;
+        box-shadow: 0 4px 12px rgba(67, 160, 71, 0.25);
+      }
+
+      .btn-send:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(67, 160, 71, 0.35);
+        background: linear-gradient(135deg, #3CB371, #256B2F);
+      }
+
+      .btn-export {
+        background: linear-gradient(135deg, #2196F3, #1976D2);
+        color: white;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+      }
+
+      .btn-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(33, 150, 243, 0.35);
+        background: linear-gradient(135deg, #42A5F5, #1565C0);
+      }
+
+      /* === SEARCH & FILTER === */
+      .search-container {
+        position: relative;
+        margin-bottom: 16px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px 16px 12px 40px;
+        border: 2px solid var(--border-gray);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+      }
+
+      .search-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+      }
+
+      .search-input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+      }
+
+      .search-results {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 8px;
+        padding: 0 4px;
+      }
+
+      /* === TABLE & LIST === */
+      .subscribers-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-gray);
+      }
+
+      .subscribers-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .subscribers-table thead {
+        background: linear-gradient(135deg, var(--light-gray), #f0f2f5);
+        border-bottom: 2px solid var(--border-gray);
+      }
+
+      .subscribers-table thead th {
+        padding: 16px 20px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .subscribers-table tbody tr {
+        border-bottom: 1px solid var(--border-gray);
+        transition: background-color 0.2s ease;
+      }
+
+      .subscribers-table tbody tr:hover {
+        background-color: var(--light-gray);
+      }
+
+      .subscribers-table tbody td {
+        padding: 16px 20px;
+        vertical-align: middle;
+      }
+
+      .subscriber-email {
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 0.95rem;
+      }
+
+      .subscriber-date {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .checkbox-custom {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--primary);
+        cursor: pointer;
+      }
+
+      .btn-delete {
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #EF5350, #E53935);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+        background: linear-gradient(135deg, #F44336, #D32F2F);
+      }
+
+      /* === EMPTY STATE === */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+      }
+
+      .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .empty-state-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+      }
+
+      .empty-state-text {
+        font-size: 0.95rem;
+      }
+
+      /* === LOADING STATE === */
+      .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(229, 57, 53, 0.2);
+        border-radius: 50%;
+        border-top-color: var(--primary);
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* === RESPONSIVE === */
+      @media (max-width: 768px) {
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .toolbar-controls {
+          grid-template-columns: 1fr;
+        }
+
+        .newsletter-header {
+          padding: 30px 20px;
+        }
+
+        .newsletter-header h1 {
+          font-size: 1.6rem;
+        }
+
+        .toolbar-actions {
+          flex-direction: column;
+        }
+
+        .btn-toolbar {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .subscriber-email {
+          font-size: 0.85rem;
+        }
+
+        .btn-delete {
+          padding: 6px 12px;
+          font-size: 0.75rem;
+        }
+      }
+    </style>
   </head>
   <body class="admin-body">
     <!-- Mobile Hamburger Button -->
@@ -67,47 +502,106 @@
             <span>Déconnexion</span>
           </a>
         </li>
-       
       </ul>
     </aside>
 
-    <main class="admin-main container-fluid">
-      <div class="admin-header mb-3">
-        <h1><i class="fas fa-envelope me-2" style="color: #f6c04d"></i>Newsletter — Abonnés</h1>
-        <p>Liste des abonnés et actions (aperçu, export, suppression)</p>
-      </div>
+    <main class="admin-main">
+      <div class="newsletter-container">
+        <div class="container-xl">
+          <!-- Header Hero -->
+          <div class="newsletter-header">
+            <div class="newsletter-header-content">
+              <h1>
+                <i class="fas fa-envelope"></i>
+                Gestion Newsletter
+              </h1>
+              <p>Gérez vos abonnés et communiquez facilement avec votre communauté</p>
+            </div>
+          </div>
 
-      <div class="card">
-        <div class="card-body">
-          <div class="newsletter-actions mb-4">
-            <div class="row g-2 align-items-center">
-              <div class="col-12 col-md-auto d-flex flex-wrap gap-2 mb-2 mb-md-0">
-                <select id="sendScope" class="form-select" style="width:160px;max-width:100%;">
-                  <option value="selected">Sélectionnés</option>
-                  <option value="all">Tous</option>
+          <!-- Stats Cards -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card-icon"><i class="fas fa-users"></i></div>
+              <div class="stat-card-label">Total d'abonnés</div>
+              <div class="stat-card-value" id="statTotalSubscribers">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon"><i class="fas fa-calendar"></i></div>
+              <div class="stat-card-label">Dernière inscription</div>
+              <div class="stat-card-value" id="statLastSubscribed">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon"><i class="fas fa-check-circle"></i></div>
+              <div class="stat-card-label">Sélectionnés</div>
+              <div class="stat-card-value" id="statSelected">0</div>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="newsletter-toolbar">
+            <div class="toolbar-title">📋 Actions</div>
+            
+            <div class="toolbar-controls">
+              <div class="toolbar-control-group">
+                <label class="toolbar-label">Destinataires</label>
+                <select id="sendScope" class="form-select">
+                  <option value="selected">Sélectionnés uniquement</option>
+                  <option value="all">Tous les abonnés</option>
                 </select>
-                <button id="sendGmail" class="btn btn-success px-4">Envoyer via Gmail</button>
-                <button id="exportCsv" class="btn btn-outline-secondary px-4">Exporter CSV</button>
               </div>
-              <div class="col-12 col-md">
-                <input id="searchEmail" class="form-control" placeholder="Rechercher par email" style="min-width:180px;max-width:340px;" />
+              <div class="toolbar-control-group">
+                <label class="toolbar-label">Nombre</label>
+                <div style="padding: 10px 12px; background: var(--light-gray); border-radius: 8px; font-weight: 600; color: var(--text-dark);">
+                  <span id="recipientCount">0</span> destinataire(s)
+                </div>
+              </div>
+              <div class="toolbar-control-group">
+                <label class="toolbar-label">&nbsp;</label>
+                <button id="sendGmail" class="btn-toolbar btn-send">
+                  <i class="fas fa-paper-plane"></i>
+                  Envoyer via Gmail
+                </button>
+              </div>
+            </div>
+
+            <div class="toolbar-actions">
+              <button id="exportCsv" class="btn-toolbar btn-export">
+                <i class="fas fa-download"></i>
+                Exporter CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-gray);">
+            <div class="search-container">
+              <i class="fas fa-search search-icon"></i>
+              <input id="searchEmail" class="search-input" placeholder="🔍 Rechercher un email...">
+              <div class="search-results">
+                Affichage <strong id="displayCount">0</strong> sur <strong id="totalCount">0</strong> abonnés
               </div>
             </div>
           </div>
 
-          <div class="table-responsive">
-            <table class="table table-striped" id="subscribersTable">
-              <thead>
-                <tr><th>Email</th><th>Date</th><th>Actions</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <!-- Subscribers Table/List -->
+          <div class="subscribers-card">
+            <div class="table-responsive">
+              <table class="subscribers-table" id="subscribersTable">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;"><input type="checkbox" id="selectAll" class="checkbox-custom"></th>
+                    <th>Email</th>
+                    <th>Date d'inscription</th>
+                    <th style="width: 100px; text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
-
-          <nav aria-label="Pagination" id="nsPagination" class="mt-2"></nav>
         </div>
       </div>
-
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

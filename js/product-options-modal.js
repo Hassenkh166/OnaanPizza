@@ -9,6 +9,19 @@ const ProductOptionsModal = (() => {
   let onConfirmCallback = null;
 
   /**
+   * Fonction pour formater et vérifier le prix (ajoute € si absent)
+   */
+  function formatPrice(price) {
+    if (!price) return 'Prix non défini';
+    const priceStr = String(price).trim();
+    // Si le prix ne finit pas par €, on l'ajoute
+    if (!priceStr.endsWith('€')) {
+      return `${priceStr} €`;
+    }
+    return priceStr;
+  }
+
+  /**
    * Fetch product options from DB
    */
   async function fetchProductOptions(productId) {
@@ -155,7 +168,7 @@ const ProductOptionsModal = (() => {
     });
 
     console.log('Final total:', total);
-    priceEl.textContent = total.toFixed(2);
+    priceEl.textContent = `${total.toFixed(2)} €`;
   }
 
   /**

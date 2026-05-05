@@ -25,7 +25,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const preview = document.getElementById('preview');
   const saveBtn = document.getElementById('saveBtn');
   const resetBtn = document.getElementById('resetBtn'); 
-  const addCatBtn = document.getElementById('addCategory'); 
+  const addCatBtn = document.getElementById('addCategory');
+  
+  // Variables pour le filtre de catégories
+  let selectedCategoryId = null;
+  let allCategories = []; 
   // site configuration moved to separate page (site-config.html)
 
   // Gestionnaire pour le lien de déconnexion
@@ -50,6 +54,13 @@ async function loadCategories() {
      }
    });
     const cats = await res.json();
+    allCategories = cats;
+    
+    // Initialiser avec la première catégorie si non défini
+    if (!selectedCategoryId && cats.length > 0) {
+      selectedCategoryId = cats[0].id;
+    }
+    
     categorySelect.innerHTML = '<option value="">Choisir une catégorie</option>' + cats.map(c => {
       const iconHtml = (c.icon && (c.icon.startsWith('http') || c.icon.startsWith('/') || /\.(png|jpe?g|gif|svg)$/i.test(c.icon))) ? ` <img src="${c.icon}" style="height:18px; width:18px; object-fit:contain; margin-right:6px">` : (c.icon? c.icon+' ' : '');
       return `<option value="${c.id}">${iconHtml}${c.name}</option>`;
@@ -86,7 +97,13 @@ async function loadCategories() {
         'Authorization': `Bearer ${roleKey}`
       }
     });
-    const products = await res.json();
+    let products = await res.json();
+    
+    // Filtrer par catégorie sélectionnée
+    if (selectedCategoryId) {
+      products = products.filter(p => p.category_id === selectedCategoryId);
+    }
+    
     listEl.innerHTML = products.map(p => {
       return `
         <div class="list-group-item product-row d-flex align-items-center justify-content-between">
@@ -108,6 +125,64 @@ async function loadCategories() {
     // attach handlers
     listEl.querySelectorAll('button[data-action=edit]').forEach(b => b.addEventListener('click', onEdit));
     listEl.querySelectorAll('button[data-action=delete]').forEach(b => b.addEventListener('click', onDelete));
+  }
+
+  // Fonction pour afficher le slider de catégories
+  function renderCategoryFilters() {
+    // Supprimer les anciens filtres s'ils existent
+    const oldFilters = document.querySelectorAll('[data-filter-wrapper]');
+    oldFilters.forEach(f => f.remove());
+    
+    let filterHtml = `
+      <div data-filter-wrapper style="display: flex; gap: 10px; overflow-x: auto; padding: 16px 0; margin-bottom: 24px; align-items: center;">
+    `;
+    
+    allCategories.forEach(cat => {
+      const isActive = cat.id === selectedCategoryId;
+      const iconHtml = (cat.icon && (cat.icon.startsWith('http') || cat.icon.startsWith('/') || /\.(png|jpe?g|gif|svg)$/i.test(cat.icon))) 
+        ? `<img src="${cat.icon}" style="height: 20px; width: 20px; object-fit: contain;">` 
+        : (cat.icon ? cat.icon : '📁');
+      
+      filterHtml += `
+        <button 
+          class="category-filter-btn" 
+          data-category-id="${cat.id}"
+          style="
+            padding: 10px 16px;
+            border: 2px solid ${isActive ? '#E53935' : '#ddd'};
+            border-radius: 20px;
+            background: ${isActive ? '#E53935' : 'white'};
+            color: ${isActive ? 'white' : '#333'};
+            font-weight: ${isActive ? '600' : '500'};
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+          "
+          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.1)'"
+          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+        >
+          <span>${iconHtml}</span>
+          <span>${cat.name}</span>
+        </button>
+      `;
+    });
+    
+    filterHtml += `</div>`;
+    
+    // Insérer le slider avant la liste des produits
+    listEl.insertAdjacentHTML('beforebegin', filterHtml);
+    
+    // Ajouter les listeners pour les filtres
+    document.querySelectorAll('.category-filter-btn').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        selectedCategoryId = parseInt(this.dataset.categoryId);
+        await renderList();
+        renderCategoryFilters();
+      });
+    });
   }
 
   async function onEdit(e){
@@ -182,6 +257,7 @@ async function loadCategories() {
         if (!res.ok) throw new Error('Échec suppression');
         showToast('Produit supprimé', 'success');
         await renderList();
+        renderCategoryFilters();
         try { window.opener && window.opener.__Products && window.opener.__Products.renderProducts(); } catch(e){}
       } catch(err) { showToast('Erreur lors de la suppression', 'danger'); }
     };
@@ -414,6 +490,7 @@ res = await fetch(FUNCTIONS.updateCategory, {
       else { showToast('Produit enregistré', 'success'); }
       resetForm();
       await renderList();
+      renderCategoryFilters();
       try { window.opener && window.opener.__Products && window.opener.__Products.renderProducts(); } catch(e){}
     } catch(err) { console.error(err); showToast('Erreur réseau', 'danger'); }
     finally { saveBtn.disabled = false; }
@@ -422,7 +499,7 @@ res = await fetch(FUNCTIONS.updateCategory, {
   resetBtn.addEventListener('click', function(){ resetForm(); });
 
   // initial load
-  loadCategories().then(renderList).catch(err => { console.error(err); renderList(); });
+  loadCategories().then(renderList).then(renderCategoryFilters).catch(err => { console.error(err); renderList(); renderCategoryFilters(); });
 
   // delegated handler for edit/delete on categories list (more robust)
   if (categoriesList) {

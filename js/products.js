@@ -4,6 +4,17 @@ let categories = [];
 let products = [];
 let activeCategory = '';
 
+// Fonction pour formater et vérifier le prix (ajoute € si absent)
+function formatPrice(price) {
+  if (!price) return 'Prix non défini';
+  const priceStr = String(price).trim();
+  // Si le prix ne finit pas par €, on l'ajoute
+  if (!priceStr.endsWith('€')) {
+    return `${priceStr} €`;
+  }
+  return priceStr;
+}
+
 // Load categories and products
 async function loadMenu() {
   try {
@@ -216,7 +227,7 @@ function createProductCard(product, index) {
           
           <!-- Footer with price and button -->
           <div class="product-footer">
-            <div class="product-price">${product.price || 'Prix non défini'}</div>
+            <div class="product-price">${formatPrice(product.price)}</div>
             <button class="btn-add-to-cart-small" onclick="handleAddToCart(${product.id}, event)">
               <i class="fas fa-shopping-cart"></i>
             </button>
