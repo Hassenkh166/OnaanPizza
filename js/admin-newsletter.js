@@ -159,10 +159,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Add checkbox listeners
     document.querySelectorAll('.ns-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', updateSelectedCount);
+      checkbox.addEventListener('change', () => {
+        updateSelectedCount();
+        updateSelectAllState();
+      });
     });
 
     updateSelectAllState();
+    updateSelectedCount();
   }
 
   // Select All functionality
