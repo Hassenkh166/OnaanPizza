@@ -66,6 +66,17 @@ const ProductOptionsModal = (() => {
       if (!aIsFries && bIsFries) return 1;
       return (a.id || 0) - (b.id || 0);
     });
+
+    // For tacos, remove supplementary meat options
+    const isTaco = /tacos?/i.test(product.title);
+    if (isTaco) {
+      currentOptions = currentOptions.filter(opt => {
+        const optName = opt.name.toLowerCase();
+        // Exclude options like "viande supplémentaire", "viande extra", "supplément viande"
+        return !(optName.includes('supplémentaire') || optName.includes('extra') || optName.includes('supplément'));
+      });
+    }
+
     console.log('📦 Options loaded from DB:', currentOptions);
 
     // Update modal title
@@ -94,6 +105,14 @@ const ProductOptionsModal = (() => {
   }
 
   /**
+   * Extract number of meats from product name (e.g., "Tacos 1 viande" => 1)
+   */
+  function extractMeatCount(productTitle) {
+    const match = productTitle.match(/(\d+)\s*viande/i);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  /**
    * Render option groups in modal
    */
   function renderOptions() {
@@ -101,15 +120,46 @@ const ProductOptionsModal = (() => {
     if (!container) return;
     container.innerHTML = '';
 
+    // Extract meat count if this is a taco product
+    const meatCount = extractMeatCount(currentProduct.title);
+    let forcedMeatType = null;
+    if (meatCount && meatCount > 1) {
+      forcedMeatType = 'checkbox';
+    }
+
     currentOptions.forEach((opt) => {
       const group = document.createElement('div');
       group.className = 'option-group';
-      group.innerHTML = `<h4 class="option-name">${opt.name}${opt.required ? ' <span class="required">*</span>' : ''}</h4>`;
+      
+      // Determine option type: force checkbox if meat count > 1 and this is a meat option
+      let optionType = opt.type;
+      const isMeatOption = opt.name.toLowerCase().includes('viande') || opt.name.toLowerCase().includes('meat');
+      if (meatCount && isMeatOption && meatCount > 1) {
+        optionType = 'checkbox';
+      }
+
+      // Simplify meat option name for tacos
+      let displayName = opt.name;
+      const isTaco = /tacos?/i.test(currentProduct.title);
+      if (isTaco && isMeatOption) {
+        displayName = 'Viandes';
+      }
+      
+      // Add title
+      group.innerHTML = `<h4 class="option-name">${displayName}${opt.required ? ' <span class="required">*</span>' : ''}</h4>`;
+      
+      // Add limit info if applicable - DIRECTLY AFTER TITLE
+      if (meatCount && isMeatOption && optionType === 'checkbox') {
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'option-info';
+        infoDiv.textContent = `Sélectionnez ${meatCount} viande${meatCount > 1 ? 's' : ''}`;
+        group.appendChild(infoDiv);
+      }
 
       const itemsContainer = document.createElement('div');
-      itemsContainer.className = `option-items option-type-${opt.type}`;
+      itemsContainer.className = `option-items option-type-${optionType}`;
 
-      if (opt.type === 'radio') {
+      if (optionType === 'radio') {
         opt.product_option_values.forEach((val, idx) => {
           const isFriesOption = opt.name.toLowerCase().includes('frites');
           const isFeaturedChoice = isFriesOption && val.value.toLowerCase().includes('avec');
@@ -124,12 +174,14 @@ const ProductOptionsModal = (() => {
           `;
           itemsContainer.appendChild(label);
         });
-      } else if (opt.type === 'checkbox') {
+      } else if (optionType === 'checkbox') {
         opt.product_option_values.forEach((val) => {
           const label = document.createElement('label');
           label.className = 'option-label';
+          
           label.innerHTML = `
-            <input type="checkbox" name="opt_${opt.id}" value="${val.id}" data-value="${val.value}" data-modifier="${val.price_modifier || 0}">
+            <input type="checkbox" name="opt_${opt.id}" value="${val.id}" data-value="${val.value}" data-modifier="${val.price_modifier || 0}" 
+                   data-meat-count="${meatCount || 0}" data-is-meat="${isMeatOption ? 'true' : 'false'}">
             <span class="option-text">${val.value}${val.price_modifier > 0 ? ` (+${val.price_modifier.toFixed(2)}€)` : ''}</span>
           `;
           itemsContainer.appendChild(label);
@@ -198,11 +250,22 @@ const ProductOptionsModal = (() => {
    * Confirm and add to cart
    */
   function confirm() {
+    // Extract meat count for validation
+    const meatCount = extractMeatCount(currentProduct.title);
+
     // Validate required options
     for (const opt of currentOptions) {
       if (opt.required) {
         const inputs = document.querySelectorAll(`input[name="opt_${opt.id}"]:checked`);
-        if (inputs.length === 0) {
+        
+        // Special validation for meat options in tacos
+        const isMeatOption = opt.name.toLowerCase().includes('viande') || opt.name.toLowerCase().includes('meat');
+        if (meatCount && isMeatOption && meatCount > 1) {
+          if (inputs.length !== meatCount) {
+            alert(`Veuillez sélectionner exactement ${meatCount} viande${meatCount > 1 ? 's' : ''}`);
+            return;
+          }
+        } else if (inputs.length === 0) {
           alert(`Veuillez sélectionner "${opt.name}"`);
           return;
         }
@@ -217,6 +280,33 @@ const ProductOptionsModal = (() => {
     }
 
     close();
+  }
+
+  /**
+   * Validate checkbox selection limits
+   */
+  function validateCheckboxLimits(e) {
+    const input = e.target;
+    if (input.type !== 'checkbox') return;
+
+    const isMeat = input.dataset.isMeat === 'true';
+    const meatCount = parseInt(input.dataset.meatCount) || 0;
+
+    // Only validate meat options with a meat count limit
+    if (!isMeat || meatCount <= 1) return;
+
+    // Get all checkboxes in the same group
+    const groupName = input.name;
+    const checkboxes = document.querySelectorAll(`input[name="${groupName}"]:checked`);
+
+    // If selection exceeds limit, uncheck this one silently
+    if (checkboxes.length > meatCount) {
+      input.checked = false;
+      updateTotalPrice();
+      return;
+    }
+
+    updateTotalPrice();
   }
 
   /**
@@ -244,10 +334,12 @@ const ProductOptionsModal = (() => {
       confirmBtn.addEventListener('click', confirm);
     }
 
-    // Option input changes (update price)
-    modal.addEventListener('input', (e) => {
-      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+    // Option input changes (update price) + validate limits
+    modal.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"]')) {
         updateTotalPrice();
+      } else if (e.target.matches('input[type="checkbox"]')) {
+        validateCheckboxLimits(e);
       }
     });
   }

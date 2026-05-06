@@ -164,6 +164,17 @@
   vertical-align: middle;
 }
 
+.option-info {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #E8F5E9;
+  border-left: 3px solid #43A047;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #2E7D32;
+  font-weight: 600;
+}
+
 /* Footer */
 .options-footer {
   padding: 15px 20px 30px 20px;

@@ -7,6 +7,8 @@ import { roleKey } from './supabaseClient.js';
 
 let allOrders = [];
 let currentFilter = 'all';
+let currentDateFilter = 'all';
+let currentPaymentFilter = 'all';
 
 // Récupérer les commandes depuis Supabase
 async function loadOrders() {
@@ -47,8 +49,42 @@ function renderOrders() {
     }
 
     let filtered = allOrders;
+    
+    // Filter by status
     if (currentFilter !== 'all') {
-        filtered = allOrders.filter(o => o.status === currentFilter);
+        filtered = filtered.filter(o => o.status === currentFilter);
+    }
+
+    // Filter by date
+    if (currentDateFilter !== 'all') {
+        const now = new Date();
+        let cutoffDate;
+
+        if (currentDateFilter === 'today') {
+            cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (currentDateFilter === 'week') {
+            cutoffDate = new Date(now);
+            cutoffDate.setDate(cutoffDate.getDate() - 7);
+        } else if (currentDateFilter === 'month') {
+            cutoffDate = new Date(now);
+            cutoffDate.setDate(cutoffDate.getDate() - 30);
+        }
+
+        if (cutoffDate) {
+            filtered = filtered.filter(o => {
+                const orderDate = new Date(o.created_at);
+                return orderDate >= cutoffDate;
+            });
+        }
+    }
+
+    // Filter by payment method
+    if (currentPaymentFilter !== 'all') {
+        if (currentPaymentFilter === 'none') {
+            filtered = filtered.filter(o => !o.payment_method || o.payment_method === '');
+        } else {
+            filtered = filtered.filter(o => o.payment_method === currentPaymentFilter);
+        }
     }
 
     if (filtered.length === 0) {
@@ -97,6 +133,8 @@ function renderOrders() {
                 <span class="order-total-value">${Number(order.total || 0).toFixed(2)} €</span>
             </div>
 
+            ${renderPaymentMethod(order)}
+
             <div class="order-actions">
                 ${renderStatusButtons(order)}
             </div>
@@ -110,6 +148,18 @@ function renderOrders() {
             const newStatus = e.target.dataset.statusBtn;
             if (orderId && newStatus) {
                 updateOrderStatus(orderId, newStatus);
+            }
+        });
+    });
+
+    // Add listeners for payment method buttons
+    document.querySelectorAll('[data-payment-method]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-id]');
+            const orderId = card?.dataset.id;
+            const paymentMethod = e.target.dataset.paymentMethod;
+            if (orderId && paymentMethod) {
+                updateOrderPaymentMethod(orderId, paymentMethod);
             }
         });
     });
@@ -227,6 +277,38 @@ function renderOrderFulfillment(itemsJson) {
     }
 }
 
+// Render payment method buttons
+function renderPaymentMethod(order) {
+    const paymentType = order.payment_method || null;
+    const paymentMethods = [
+        { id: 'card', label: '💳 CB', color: '#2196F3' },
+        { id: 'cash', label: '💵 Espèces', color: '#4CAF50' },
+        { id: 'ticket', label: '🎫 Ticket resto', color: '#FF9800' }
+    ];
+
+    const buttons = paymentMethods.map(method => {
+        const isActive = paymentType === method.id;
+        return `
+            <button class="payment-btn ${isActive ? 'active' : ''}" 
+                    data-payment-method="${method.id}" 
+                    data-order-id="${order.id}"
+                    style="background: ${isActive ? method.color : '#f0f0f0'}; color: ${isActive ? 'white' : '#666'};">
+                ${method.label}
+            </button>
+        `;
+    }).join('');
+
+    const displayMethod = paymentType ? paymentMethods.find(m => m.id === paymentType)?.label : 'Non défini';
+
+    return `
+        <div class="order-payment-section">
+            <div class="payment-label">📊 Encaissement</div>
+            <div class="payment-methods">${buttons}</div>
+            ${paymentType ? `<div class="payment-status">Encaisé via ${displayMethod}</div>` : ''}
+        </div>
+    `;
+}
+
 // Boutons pour changer le status
 function renderStatusButtons(order) {
     const meta = getOrderMeta(order.items);
@@ -301,6 +383,52 @@ async function updateOrderStatus(orderId, newStatus) {
     } catch (error) {
         console.error('Error updating order:', error);
         showErrorMessage('Erreur lors de la mise à jour: ' + error.message);
+    }
+}
+
+// Update payment method for an order
+async function updateOrderPaymentMethod(orderId, paymentMethod) {
+    try {
+        // Use a direct Supabase PATCH with proper filter syntax
+        const response = await fetch(
+            `https://ecgujuutpxebpjwdwhcy.supabase.co/rest/v1/orders?id=eq.${parseInt(orderId)}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': roleKey,
+                    'Authorization': `Bearer ${roleKey}`
+                },
+                body: JSON.stringify({
+                    payment_method: paymentMethod
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Response status:', response.status);
+            console.error('Response body:', errorData);
+            throw new Error(`HTTP ${response.status}: ${errorData}`);
+        }
+
+        // Update local data
+        const order = allOrders.find(o => o.id == orderId);
+        if (order) {
+            order.payment_method = paymentMethod;
+        }
+
+        renderOrders();
+
+        const paymentLabels = {
+            'card': '💳 CB',
+            'cash': '💵 Espèces',
+            'ticket': '🎫 Ticket resto'
+        };
+        showSuccessMessage(`Encaissement enregistré: ${paymentLabels[paymentMethod] || paymentMethod}`);
+    } catch (error) {
+        console.error('Error updating payment method:', error);
+        showErrorMessage('Erreur lors de la mise à jour du paiement: ' + error.message);
     }
 }
 
@@ -447,6 +575,47 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentFilter = btn.dataset.status;
+        renderOrders();
+    });
+});
+
+// Date filter dropdown
+document.querySelectorAll('[data-date-filter]').forEach(item => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const dateFilter = item.dataset.dateFilter;
+        currentDateFilter = dateFilter;
+        
+        // Update label
+        const labels = {
+            'all': 'Tout',
+            'today': 'Aujourd\'hui',
+            'week': '7 jours',
+            'month': '30 jours'
+        };
+        document.getElementById('dateLabel').textContent = labels[dateFilter] || dateFilter;
+        
+        renderOrders();
+    });
+});
+
+// Payment method filter dropdown
+document.querySelectorAll('[data-payment-filter]').forEach(item => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const paymentFilter = item.dataset.paymentFilter;
+        currentPaymentFilter = paymentFilter;
+        
+        // Update label
+        const labels = {
+            'all': 'Tous',
+            'card': 'CB',
+            'cash': 'Espèces',
+            'ticket': 'Ticket resto',
+            'none': 'Non défini'
+        };
+        document.getElementById('paymentLabel').textContent = labels[paymentFilter] || paymentFilter;
+        
         renderOrders();
     });
 });

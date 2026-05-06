@@ -92,7 +92,42 @@
             </header>
 
             <div class="admin-content">
-                <!-- Filter tabs -->
+                <!-- Filters -->
+                <div class="filters-top-section">
+                    <!-- Date & Payment dropdowns (top right) -->
+                    <div class="filters-dropdowns">
+                        <!-- Date filter dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-filter-dropdown dropdown-toggle" data-bs-toggle="dropdown" id="dateDropdown">
+                                <i class="fas fa-calendar me-1"></i><span id="dateLabel">Tout</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dateDropdown">
+                                <li><a class="dropdown-item" href="#" data-date-filter="all"><i class="fas fa-calendar me-2"></i>Tout</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" data-date-filter="today"><i class="fas fa-sun me-2"></i>Aujourd'hui</a></li>
+                                <li><a class="dropdown-item" href="#" data-date-filter="week"><i class="fas fa-calendar-week me-2"></i>7 jours</a></li>
+                                <li><a class="dropdown-item" href="#" data-date-filter="month"><i class="fas fa-calendar-alt me-2"></i>30 jours</a></li>
+                            </ul>
+                        </div>
+
+                        <!-- Payment method filter dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-filter-dropdown dropdown-toggle" data-bs-toggle="dropdown" id="paymentDropdown">
+                                <i class="fas fa-money-bill me-1"></i><span id="paymentLabel">Tous</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="paymentDropdown">
+                                <li><a class="dropdown-item" href="#" data-payment-filter="all"><i class="fas fa-money-bill me-2"></i>Tous</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" data-payment-filter="card"><i class="fas fa-credit-card me-2"></i>CB</a></li>
+                                <li><a class="dropdown-item" href="#" data-payment-filter="cash"><i class="fas fa-coins me-2"></i>Espèces</a></li>
+                                <li><a class="dropdown-item" href="#" data-payment-filter="ticket"><i class="fas fa-ticket-alt me-2"></i>Ticket resto</a></li>
+                                <li><a class="dropdown-item" href="#" data-payment-filter="none"><i class="fas fa-question-circle me-2"></i>Non défini</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status filter tabs (bottom left) -->
                 <div class="filter-tabs">
                     <button class="filter-btn active" data-status="all">
                         <i class="fas fa-list me-2"></i>Toutes
