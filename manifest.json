@@ -5,7 +5,7 @@
   "start_url": "/admin.html",
   "scope": "/",
   "display": "fullscreen",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#E53935",
   "background_color": "#ffffff",
   "icons": [

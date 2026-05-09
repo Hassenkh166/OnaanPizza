@@ -667,6 +667,10 @@ async function initOrders() {
                 },
                 (payload) => {
                     console.log('Order change detected:', payload);
+                    // Play notification sound for new orders
+                    if (payload.eventType === 'INSERT') {
+                        playNotificationSound();
+                    }
                     loadOrders();
                 }
             )
@@ -676,5 +680,16 @@ async function initOrders() {
     } catch (error) {
         console.error('Realtime subscription failed:', error);
         setInterval(loadOrders, 30000);
+    }
+}
+
+// Jouer le son de notification
+function playNotificationSound() {
+    try {
+        const audio = new Audio('assets/images/ding.mp3');
+        audio.volume = 0.7;
+        audio.play().catch(err => console.log('Audio play blocked:', err));
+    } catch (error) {
+        console.error('Error playing notification sound:', error);
     }
 }
