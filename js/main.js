@@ -220,18 +220,9 @@ document.addEventListener('DOMContentLoaded', async function() {
       // Logo is already loaded from local assets immediately on DOMContentLoaded
       // No need to load it again here
       
-      // Apply contact info
-      const addressEl = document.querySelector('.contact-address');
-      if (addressEl) addressEl.textContent = config.contact_address || '';
-      
+      // Apply contact info (only phone and hours are dynamic)
       const phoneEl = document.querySelector('.contact-phone');
       if (phoneEl) phoneEl.textContent = config.contact_phone || '';
-      
-      const emailEl = document.querySelector('.contact-email');
-      if (emailEl) {
-        emailEl.textContent = config.contact_email || '';
-        emailEl.href = `mailto:${config.contact_email || ''}`;
-      }
       
       const hoursEl = document.querySelector('.contact-hours');
       if (hoursEl) hoursEl.textContent = config.contact_hours || '';
